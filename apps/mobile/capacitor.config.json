@@ -1,0 +1,11 @@
+{
+  "appId": "app.roundsman.trashtycoon",
+  "appName": "Trash Tycoon",
+  "webDir": "www",
+  "backgroundColor": "#14284B",
+  "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false },
+  "ios": { "contentInset": "never" },
+  "plugins": {
+    "SystemBars": { "insetsHandling": "css", "style": "DARK" }
+  }
+}

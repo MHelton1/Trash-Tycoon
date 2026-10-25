@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Trash Tycoon</string>
+    <string name="title_activity_main">Trash Tycoon</string>
+    <string name="package_name">app.roundsman.trashtycoon</string>
+    <string name="custom_url_scheme">app.roundsman.trashtycoon</string>
+</resources>

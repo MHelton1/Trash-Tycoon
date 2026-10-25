@@ -1,0 +1,70 @@
+# Builds the Android app.
+#   Every push: runs the game tests and builds a test APK you can install directly.
+#   Run workflow (Actions tab > Build Android app > Run workflow): also builds the signed .aab you upload to Google Play.
+# Signing uses four repository secrets: TT_KEYSTORE_BASE64, TT_KEYSTORE_PASSWORD, TT_KEY_ALIAS, TT_KEY_PASSWORD (see PLAY_STORE.md).
+name: Build Android app
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version shown in Google Play, for example 1.0.0"
+        required: true
+        default: "1.0.0"
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/mobile } }
+    env:
+      VERSION_NAME: ${{ inputs.version_name || '1.0.0' }}
+      VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: Game tests
+        run: node ../../test/engine.test.js
+      - run: npm ci
+      - run: node scripts/prepare.js web
+      - run: npx cap sync android
+      - name: Unpack the upload key
+        env: { KS: "${{ secrets.TT_KEYSTORE_BASE64 }}" }
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/upload-key.jks"
+            echo "TT_KEYSTORE_FILE=$RUNNER_TEMP/upload-key.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No signing secrets yet, so only the test APK is built. See PLAY_STORE.md, step 1."
+          fi
+      - name: Build
+        working-directory: apps/mobile/android
+        env:
+          TT_KEYSTORE_PASSWORD: ${{ secrets.TT_KEYSTORE_PASSWORD }}
+          TT_KEY_ALIAS: ${{ secrets.TT_KEY_ALIAS }}
+          TT_KEY_PASSWORD: ${{ secrets.TT_KEY_PASSWORD }}
+        run: |
+          TASKS="assembleDebug"
+          if [ -n "$TT_KEYSTORE_FILE" ]; then TASKS="$TASKS bundleRelease"; fi
+          ./gradlew $TASKS -PttVersionCode=$VERSION_CODE -PttVersionName=$VERSION_NAME --no-daemon
+      - name: Check the release bundle
+        if: env.TT_KEYSTORE_FILE != ''
+        working-directory: apps/mobile/android
+        run: |
+          AAB=app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify "$AAB" | tail -1
+          unzip -p "$AAB" base/manifest/AndroidManifest.xml > /dev/null
+          echo "Built version $VERSION_NAME (code $VERSION_CODE)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Trash-Tycoon-test-apk-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        if: env.TT_KEYSTORE_FILE != ''
+        with:
+          name: Trash-Tycoon-google-play-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          path: apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
