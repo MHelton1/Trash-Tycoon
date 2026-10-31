@@ -61,10 +61,10 @@ jobs:
           echo "Built version $VERSION_NAME (code $VERSION_CODE)"
       - uses: actions/upload-artifact@v4
         with:
-          name: Trash-Tycoon-test-apk-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          name: Idle-Roundsman-test-apk-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
           path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         if: env.TT_KEYSTORE_FILE != ''
         with:
-          name: Trash-Tycoon-google-play-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          name: Idle-Roundsman-google-play-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
           path: apps/mobile/android/app/build/outputs/bundle/release/app-release.aab

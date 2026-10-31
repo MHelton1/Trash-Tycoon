@@ -1,9 +1,9 @@
-/* Trash Tycoon screens. Each tab is built once; small "binds" refresh the numbers four times a second,
+/* Idle Roundsman screens. Each tab is built once; small "binds" refresh the numbers four times a second,
    and "sections" rebuild only when their shape changes, so a button is never swapped out under a finger. */
 (function () {
 'use strict';
 const T = window.TT, $ = s => document.querySelector(s);
-const KEY = 'trash-tycoon-save-v1';
+const KEY = 'trash-tycoon-save-v1'; // kept from the game's first name so existing saves carry over
 const money = T.fmtMoney, num = T.fmt;
 let S, tab = 'route', binds = {}, sections = {}, bid = 0, lastFrame = Date.now(), newTrophies = 0;
 
@@ -194,7 +194,7 @@ const VIEWS = {
         <div class="split"><span>Away time</span><b ${B(() => 'up to ' + T.mults(S).awayH + ' hours')}></b></div>
         <div class="split"><span>Start over completely</span><button class="btn ghost" data-a="wipeAsk">Erase</button></div>
         <div class="split"><span>Privacy</span><button class="btn ghost" data-a="privacy">Read</button></div></div>
-      <p class="muted small">Trash Tycoon ${T.VERSION}, built on the Roundsman world. Saves on this device every few seconds.</p>`;
+      <p class="muted small">Idle Roundsman ${T.VERSION}, built on the Roundsman world. Saves on this device every few seconds.</p>`;
   }
 };
 
@@ -232,7 +232,7 @@ const special = {
   theme(b) { S.theme = b.dataset.x; setTheme(S.theme); persist(); },
   exportSave() { const c = T.exportCode(S); modal(`<h2>Save code</h2><p class="small muted">Copy this and load it on another phone.</p><textarea readonly>${esc(c)}</textarea><div class="btns"><button class="btn" data-m="copy">Copy</button><button class="btn ghost" data-m="ok">Close</button></div>`, (k, m) => { if (k === 'copy') { const ta = m.querySelector('textarea'); ta.select(); try { navigator.clipboard.writeText(c); } catch (e) { document.execCommand('copy'); } note('Copied.'); } }); },
   importSave() { modal(`<h2>Load a save code</h2><p class="small muted">This replaces the game on this phone.</p><textarea></textarea><div class="btns"><button class="btn ghost" data-m="no">Cancel</button><button class="btn" data-m="load">Load</button></div>`, (k, m) => { if (k !== 'load') return; try { S = T.importCode(m.querySelector('textarea').value); setTheme(S.theme || 'auto'); persist(); show('route'); note('Save loaded.'); } catch (e) { note('That code did not work.'); return false; } }); },
-  privacy() { modal(`<h2>Privacy</h2><p>Trash Tycoon does not collect, store or share any personal information. There are no accounts, ads, analytics or trackers, and the game does not go online.</p><p>Your company is saved only on this device. A save code is created only when you press Copy, and goes only where you paste it. Uninstalling the game or pressing Erase deletes everything.</p><p class="small muted">Full policy: <a href="${T.PRIVACY_URL}" target="_blank" rel="noopener">${esc(T.PRIVACY_URL.replace('https://', ''))}</a></p><div class="btns"><button class="btn" data-m="ok">Close</button></div>`, () => {}); },
+  privacy() { modal(`<h2>Privacy</h2><p>Idle Roundsman does not collect, store or share any personal information. There are no accounts, ads, analytics or trackers, and the game does not go online.</p><p>Your company is saved only on this device. A save code is created only when you press Copy, and goes only where you paste it. Uninstalling the game or pressing Erase deletes everything.</p><p class="small muted">Full policy: <a href="${T.PRIVACY_URL}" target="_blank" rel="noopener">${esc(T.PRIVACY_URL.replace('https://', ''))}</a></p><div class="btns"><button class="btn" data-m="ok">Close</button></div>`, () => {}); },
   wipeAsk() { modal(`<h2>Erase everything?</h2><p>This deletes the company, your trophies and Legacy on this phone. It cannot be undone.</p><div class="btns"><button class="btn ghost" data-m="no">Cancel</button><button class="btn" style="background:var(--bad);border-color:var(--bad)" data-m="yes">Erase</button></div>`, k => { if (k === 'yes') { S = T.fresh(); persist(); show('route'); askName(); } }); }
 };
 function onClick(ev) {

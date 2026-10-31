@@ -1,4 +1,4 @@
-# Publishing Trash Tycoon on Google Play
+# Publishing Idle Roundsman on Google Play
 
 Everything in the app is already set up for Google Play's current rules:
 
@@ -11,7 +11,7 @@ Everything in the app is already set up for Google Play's current rules:
 | Data safety must match what the app does | The app collects nothing, asks for no permissions (not even internet) and contains no ads, analytics or third-party code |
 | Edge-to-edge screens on Android 15 and 16 | The header and tab bar stay clear of the status and navigation bars |
 | No 32-bit-only native code, 16 KB page support | The app has no native code, so neither applies |
-| Original name, icon and art | All drawn for this game; the listing name adds "Roundsman" to stay distinct from other "Trash Tycoon" games |
+| Original name, icon and art | All drawn for this game; no other app found using the name Idle Roundsman |
 
 ## 1. Add your upload key to GitHub (once)
 
@@ -26,15 +26,15 @@ Your upload key is in the project files, in `trash-tycoon-signing/`. It is **not
 
 1. GitHub repo > **Actions** > **Build Android app** > **Run workflow**. Type the version (1.0.0 the first time) and run it.
 2. When it finishes (about 5 minutes), scroll to **Artifacts** at the bottom of the run:
-   - `Trash-Tycoon-google-play-…` holds `app-release.aab`, which is the file for Google Play.
-   - `Trash-Tycoon-test-apk-…` holds `app-debug.apk`, which you can install straight onto your own phone to try it.
+   - `Idle-Roundsman-google-play-…` holds `app-release.aab`, which is the file for Google Play.
+   - `Idle-Roundsman-test-apk-…` holds `app-debug.apk`, which you can install straight onto your own phone to try it.
 
 Each push to the repo also runs the tests and builds both files.
 
 ## 3. Create the app in Play Console
 
 Play Console (play.google.com/console, $25 one-time developer fee) > **Create app**:
-- App name: **Roundsman Trash Tycoon**
+- App name: **Idle Roundsman**
 - Default language: English (United States)
 - App or game: **Game**. Free or paid: **Free**
 - Tick the two declarations.

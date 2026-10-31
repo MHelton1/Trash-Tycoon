@@ -1,10 +1,12 @@
-# Trash Tycoon
+# Idle Roundsman
+
+(First called Trash Tycoon; the repository keeps that name so the privacy policy link stays the same.)
 
 An idle game built on the Roundsman world: start with one pickup and a trailer in Maple Hollow and grow a waste company however you like. No outside packages; plain HTML, CSS and JavaScript, the same way Roundsman is built.
 
 ## Play it
 
-- **In a browser:** open `dist/trash-tycoon.html` (one file, works offline), or serve the `web/` folder (`npx http-server web`) and open it.
+- **In a browser:** open `dist/idle-roundsman.html` (one file, works offline), or serve the `web/` folder (`npx http-server web`) and open it.
 - **iPhone, quickest:** put the `web/` folder on any HTTPS address, open it in Safari, Share, Add to Home Screen. It works with no signal after the first load.
 - **Android app:** every push builds a test APK on GitHub (Actions > Build Android app > the run > Artifacts). Send `app-debug.apk` to a phone and open it (allow "install unknown apps").
 - **Google Play:** see [PLAY_STORE.md](PLAY_STORE.md) for the signed release build and every Play Console answer.
@@ -49,4 +51,4 @@ Routes keep running while you are away (4 hours to start, more with upgrades). T
 - `store/`: Google Play listing text, icon, feature graphic and screenshots.
 - `test/engine.test.js`: `node test/engine.test.js`.
 - `tools/sim.js`: a bot that plays greedily and prints when it hits each milestone (`node tools/sim.js 6`), for checking pacing after changing numbers.
-- `tools/bundle.js`: rebuilds `dist/trash-tycoon.html`. `tools/icons.py` redraws the icons.
+- `tools/bundle.js`: rebuilds `dist/idle-roundsman.html`. `tools/icons.py` redraws the icons.

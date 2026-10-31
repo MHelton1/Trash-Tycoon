@@ -1,4 +1,4 @@
-package app.roundsman.trashtycoon;
+package app.roundsman.idle;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "app.roundsman.trashtycoon"
+    namespace = "app.roundsman.idle"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.roundsman.trashtycoon"
+        applicationId "app.roundsman.idle"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // The build workflow passes these; local builds fall back to 1 / 1.0.0

@@ -4,9 +4,9 @@ Copy these into Play Console > Grow users > Store presence > Main store listing.
 
 ## App name (30 characters max)
 
-Roundsman Trash Tycoon
+Idle Roundsman
 
-(Several other games on Google Play and the App Store already use the name "Trash Tycoon". Putting your Roundsman brand in front keeps the listing distinct, which helps with Google's rule against names that could be confused with another app. The name on the phone's home screen stays "Trash Tycoon".)
+(The same name shows under the icon on the phone.)
 
 ## Short description (80 characters max)
 

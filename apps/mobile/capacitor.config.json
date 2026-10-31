@@ -1,6 +1,6 @@
 {
-  "appId": "app.roundsman.trashtycoon",
-  "appName": "Trash Tycoon",
+  "appId": "app.roundsman.idle",
+  "appName": "Idle Roundsman",
   "webDir": "www",
   "backgroundColor": "#14284B",
   "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false },

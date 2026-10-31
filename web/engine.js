@@ -1,4 +1,4 @@
-/* Trash Tycoon engine: the whole simulation, with no screen code, so it runs the same in the app, in tests and in the pacing bot.
+/* Idle Roundsman engine: the whole simulation, with no screen code, so it runs the same in the app, in tests and in the pacing bot.
    Time is in seconds. Money is in dollars. Everything that grows uses a price multiplier per item already owned. */
 (function (root) {
 'use strict';
@@ -400,7 +400,7 @@ function nextGoals(s, n) {
 /* ---------- saves ---------- */
 function save(s) { s.lastSeen = Date.now(); return JSON.stringify(s); }
 function load(str) {
-  const j = typeof str === 'string' ? JSON.parse(str) : str; if (!j || j.v !== 1) throw new Error('Not a Trash Tycoon save.');
+  const j = typeof str === 'string' ? JSON.parse(str) : str; if (!j || j.v !== 1) throw new Error('Not an Idle Roundsman save.');
   const s = fresh(j.legacy); Object.keys(j).forEach(k => { s[k] = j[k]; });
   ['cust', 'trucks', 'stats', 'paused'].forEach(k => { s[k] = Object.assign({}, fresh()[k], j[k] || {}); });
   s.legacy = Object.assign({ stars: 0, earnedStars: 0, perks: {}, sales: 0, best: 0, achievements: {} }, j.legacy || {});

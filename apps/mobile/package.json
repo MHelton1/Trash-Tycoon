@@ -1,8 +1,8 @@
 {
-  "name": "trash-tycoon-mobile",
+  "name": "idle-roundsman-mobile",
   "version": "1.0.0",
   "private": true,
-  "description": "Trash Tycoon for Android and iPhone. The whole game is bundled inside the app, so it plays with no signal.",
+  "description": "Idle Roundsman for Android and iPhone. The whole game is bundled inside the app, so it plays with no signal.",
   "scripts": { "copy-web": "node scripts/prepare.js web" },
   "engines": { "node": ">=22" },
   "dependencies": {
