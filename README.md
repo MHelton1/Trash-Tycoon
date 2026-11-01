@@ -51,4 +51,4 @@ Routes keep running while you are away (4 hours to start, more with upgrades). T
 - `store/`: Google Play listing text, icon, feature graphic and screenshots.
 - `test/engine.test.js`: `node test/engine.test.js`.
 - `tools/sim.js`: a bot that plays greedily and prints when it hits each milestone (`node tools/sim.js 6`), for checking pacing after changing numbers.
-- `tools/bundle.js`: rebuilds `dist/idle-roundsman.html`. `tools/icons.py` redraws the icons.
+- `tools/bundle.js`: rebuilds `dist/idle-roundsman.html`. `tools/icons.js` redraws every icon and the wordmark banners from `store/logo.svg`.
