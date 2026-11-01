@@ -26,14 +26,31 @@ const TOWNS = [
   { id: 'ashby', name: 'Port Ashby', homes: 60000, biz: 3800, sites: 380, cost: 3.5e7 },
   { id: 'metro', name: 'Metro Bay', homes: 220000, biz: 14000, sites: 1400, cost: 6e8 }
 ];
-const REGION_NAMES = ['Tri-County', 'Lakeshore', 'High Plains', 'Iron Range', 'Gulf Coast', 'Northwoods', 'Desert Valley', 'Twin Rivers', 'Bluegrass', 'Red Rock', 'Pine Barrens', 'Silver Coast'];
-/* After the named towns the map keeps going: each region is bigger and dearer than the last. */
-function townDef(i) {
-  if (i < TOWNS.length) return TOWNS[i];
+const COUNTY_NAMES = ['Three Forks', 'Iron Range', 'Northwoods', 'Twin Rivers', 'Bluegrass', 'Red Rock', 'Pine Barrens', 'Silver Coast', 'Stone Ridge', 'Fox Hollow', 'Elk Run', 'Copper Hills'];
+
+/* Regions: the company works one region at a time. Moving starts over there with a small part of the cash.
+   Later regions pay more and have bigger towns, but people trust slowly, turn on you fast,
+   and can run you out of the region for good (until you sell the company). */
+const REGIONS = [
+  { id: 'valley', name: 'Maple Valley', about: 'Home. Small towns that give a new hauler a fair shot.', towns: ['Maple Hollow', 'Cedar Falls', 'Riverton', 'Granite City', 'Port Ashby', 'Metro Bay'], scale: 1, rate: 1, up: 1, down: 1, startRep: 60, ban: false, need: 0 },
+  { id: 'lakes', name: 'Lake Country', about: 'Lake towns and summer cabins. Friendly, but they remember a missed pickup.', towns: ['Loon Lake', 'Birchport', 'Two Harbors', 'Clearwater', 'Pike Bay', 'Lakeview City'], scale: 1.6, rate: 1.5, up: 0.8, down: 1.4, startRep: 50, ban: true, need: 1e7 },
+  { id: 'plains', name: 'High Plains', about: 'Farm towns far apart. Long routes and proud people who are slow to trust.', towns: ['Dry Creek', 'Wheaton', 'Big Sky', 'Prairie Gate', 'Holt Junction', 'Plainsville'], scale: 2.4, rate: 2.2, up: 0.65, down: 1.8, startRep: 45, ban: true, need: 5e8 },
+  { id: 'coast', name: 'Gulf Coast', about: 'Beach towns full of tourists. Big money, and a storm of complaints when you slip.', towns: ['Pelican Key', 'Sandy Shores', 'Bayport', 'Palm Point', 'Harbor Isle', 'Coral City'], scale: 3.5, rate: 3.2, up: 0.5, down: 2.3, startRep: 40, ban: true, need: 1e10 },
+  { id: 'desert', name: 'Red Desert', about: 'Fast-growing desert towns. Heat, dust and city councils with short tempers.', towns: ['Dust Flats', 'Mesa Verde', 'Sun Valley', 'Red Butte', 'Cactus Springs', 'Phoenix Ridge'], scale: 5, rate: 4.5, up: 0.4, down: 2.8, startRep: 35, ban: true, need: 3e11 },
+  { id: 'metro', name: 'Capital Metro', about: 'The big city. Every council member has your number on speed dial.', towns: ['Old Town', 'Midtown', 'Harbor District', 'Uptown', 'Westside', 'Capital City'], scale: 7, rate: 6.5, up: 0.3, down: 3.4, startRep: 30, ban: true, need: 1e13 }
+];
+const BAN = { rep: 15, secs: 120, keep: 0.1 }; // below 15 reputation for 2 minutes of play gets you run out
+const region = s => REGIONS[s.region || 0];
+
+/* Towns in a region: its six named towns, then counties that keep getting bigger and dearer. */
+function townDef(i, r) {
+  const R = REGIONS[r || 0], sc = R.scale;
+  if (i < TOWNS.length) { const t = TOWNS[i]; return { id: t.id, name: R.towns[i], homes: Math.round(t.homes * sc), biz: Math.round(t.biz * sc), sites: Math.round(t.sites * sc), cost: t.cost * sc }; }
   const k = i - TOWNS.length + 1, base = TOWNS[TOWNS.length - 1];
-  const nm = REGION_NAMES[(k - 1) % REGION_NAMES.length] + (k > REGION_NAMES.length ? ' ' + (Math.floor((k - 1) / REGION_NAMES.length) + 1) : '');
-  return { id: 'r' + k, name: nm + ' Region', homes: Math.round(base.homes * Math.pow(3, k)), biz: Math.round(base.biz * Math.pow(3, k)), sites: Math.round(base.sites * Math.pow(3, k)), cost: base.cost * Math.pow(14, k) };
+  const nm = COUNTY_NAMES[(k - 1) % COUNTY_NAMES.length] + (k > COUNTY_NAMES.length ? ' ' + (Math.floor((k - 1) / COUNTY_NAMES.length) + 1) : '');
+  return { id: 'r' + k, name: nm + ' County', homes: Math.round(base.homes * sc * Math.pow(3, k)), biz: Math.round(base.biz * sc * Math.pow(3, k)), sites: Math.round(base.sites * sc * Math.pow(3, k)), cost: base.cost * sc * Math.pow(14, k) };
 }
+const town = (s, i) => townDef(i, s.region || 0);
 
 /* Software modules: the Roundsman suite, bought level by level. */
 const SOFTWARE = {
@@ -99,6 +116,7 @@ function fresh(legacy) {
     stats: { taps: 0, flyers: 0, roadcalls: 0, rushed: 0, contracts: 0, bestNet: 0, perfectDays: 0, missedDays: 0, away: 0, maxPrice: 1 },
     legacy, seed: (Math.random() * 2 ** 31) | 0,
     boost: 0,                 // seconds of 2x income left
+    region: 0, banned: {}, banClock: 0, // see REGIONS
     lastSeen: Date.now()
   };
   s.cash = 5000 * lvl(legacy.perks, 'start');
@@ -115,7 +133,7 @@ function rand(s) { // small seeded generator so the pacing bot and tests repeat
 /* ---------- derived numbers ---------- */
 function market(s) {
   const m = { res: 0, com: 0, ro: 0 };
-  for (let i = 0; i < s.towns; i++) { const t = townDef(i); m.res += t.homes; m.com += t.biz; m.ro += t.sites; }
+  for (let i = 0; i < s.towns; i++) { const t = town(s, i); m.res += t.homes; m.com += t.biz; m.ro += t.sites; }
   return m;
 }
 function slots(s) { return BASE.drivewaySlots + s.yards * BASE.yardSlots; }
@@ -127,7 +145,7 @@ function mults(s) {
   const sw = s.software, L = s.legacy.perks;
   return {
     cap: 1 + 0.12 * lvl(sw, 'planner'),
-    rev: (1 + 0.10 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars) * (s.boost > 0 ? 2 : 1),
+    rev: (1 + 0.10 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars) * (s.boost > 0 ? 2 : 1) * region(s).rate,
     growth: (1 + 0.25 * lvl(sw, 'portal')) * (1 + 0.3 * lvl(L, 'grow')) * (1 + 0.35 * s.marketing),
     brk: Math.pow(0.85, lvl(sw, 'reports')) / (1 + 0.25 * s.mechanics),
     repair: Math.pow(0.85, lvl(sw, 'dispatch')),
@@ -193,7 +211,7 @@ const price = {
   marketing: s => costAt(BASE.mktCost, BASE.mktMult, s.marketing),
   software: (s, k) => costAt(SOFTWARE[k].cost, SOFTWARE[k].mult, lvl(s.software, k)),
   unlock: (s, k) => UNLOCKS[k].cost,
-  town: s => townDef(s.towns).cost,
+  town: s => town(s, s.towns).cost,
   legacy: (s, k) => costAt(LEGACY[k].cost, LEGACY[k].mult, lvl(s.legacy.perks, k)),
   rush: (s, d) => Math.ceil(50 + d.left * (TRUCKS[d.type].cost / 400))
 };
@@ -229,7 +247,7 @@ const act = {
     const e = spend(s, U.cost); if (e) return e; s.unlocks[k] = true; note(s, U.name + ': done.', 'good'); return '';
   },
   expand(s) {
-    const e = spend(s, price.town(s)); if (e) return e; s.towns++; note(s, 'Now serving ' + townDef(s.towns - 1).name + '.', 'good'); return '';
+    const e = spend(s, price.town(s)); if (e) return e; s.towns++; note(s, 'Now serving ' + town(s, s.towns - 1).name + '.', 'good'); return '';
   },
   rush(s, i) {
     const d = s.down[i]; if (!d) return 'Already fixed.'; const e = spend(s, price.rush(s, d)); if (e) return e;
@@ -254,6 +272,14 @@ const act = {
     r.doubled = true; s.cash += r.cash; s.earned += r.cash; return '';
   },
   pause(s, k) { s.paused[k] = !s.paused[k]; return ''; },
+  move(s, r) {
+    r = +r; const R = REGIONS[r]; if (!R) return 'No such region.';
+    if (r === (s.region || 0)) return 'You are already here.';
+    if (s.banned[R.id]) return R.name + ' ran you out. Sell the company to try again.';
+    if (s.earned < R.need) return 'Earn ' + fmtMoney(R.need) + ' this run first.';
+    const kept = relocate(s, r, BAN.keep);
+    note(s, 'Moved to ' + R.name + ' with ' + fmtMoney(kept) + '. Starting with one pickup in ' + R.towns[0] + '.', 'good'); return '';
+  },
   /* Sell the company: stars from what this run earned, then a fresh start with everything Legacy keeps. */
   sell(s) {
     const st = starsFor(s); if (st < 1) return 'Buyers want a company that has earned at least $1M.';
@@ -285,9 +311,9 @@ function makeOffer(s) {
   if (!opts.length) return null;
   const o = opts[Math.floor(rand(s) * opts.length)], open = mk[o.svc] - s.cust[o.svc];
   const qty = Math.max(3, Math.min(open, Math.round(mk[o.svc] * o.size * (0.7 + rand(s) * 0.6))));
-  const town = townDef(Math.floor(rand(s) * s.towns)).name;
+  const where = town(s, Math.floor(rand(s) * s.towns)).name;
   const bonus = Math.round(qty * SERVICES[o.svc].rate * o.bonus * mults(s).rev);
-  return { svc: o.svc, title: o.title.replace('{t}', town), qty, bonus, left: 90 };
+  return { svc: o.svc, title: o.title.replace('{t}', where), qty, bonus, left: 90 };
 }
 
 /* ---------- the clock ---------- */
@@ -311,18 +337,23 @@ function tick(s, dt, quiet) {
 
   const e = economy(s);
   // customers: signed from the open market, faster with a good name; lost when service is poor
-  const repF = Math.pow(s.rep / 50, 1.5);
+  const repF = Math.pow(s.rep / 50, 1.5), RG = region(s);
   Object.keys(SERVICES).forEach(k => {
     if (SERVICES[k].unlock && !s.unlocks[SERVICES[k].unlock]) return;
     const open = mk[k] - s.cust[k];
     if (open > 0 && !(s.paused && s.paused[k])) s.cust[k] += Math.min(open, Math.max(open * BASE.growth * m.growth * repF * dt, (k === 'res' ? 0.6 : 0.05) * m.growth * repF * dt));
-    if (s.rep < 35) s.cust[k] *= Math.pow(1 - 0.002 * (35 - s.rep) / 35, dt);
+    if (s.rep < 35) s.cust[k] *= Math.pow(1 - 0.002 * RG.down * (35 - s.rep) / 35, dt);
     s.cust[k] = Math.max(0, Math.min(mk[k], s.cust[k]));
   });
   // reputation drifts toward how well you serve
   const ratio = e.totalCust > 0 ? e.totalMissed / e.totalCust : 0;
-  const target = ratio > 0 ? Math.max(5, 75 - 160 * ratio) : 75 + Math.min(25, s.mechanics * 2 + lvl(s.software, 'portal') * 2 + s.marketing);
-  s.rep += (target - s.rep) * Math.min(1, 0.02 * dt);
+  const target = ratio > 0 ? Math.max(5, 75 - 160 * RG.down * ratio) : 75 + Math.min(25, s.mechanics * 2 + lvl(s.software, 'portal') * 2 + s.marketing);
+  s.rep += (target - s.rep) * Math.min(1, 0.02 * (target > s.rep ? RG.up : RG.down) * dt);
+  // in the tougher regions, a reputation in the gutter for too long gets you run out (only while you are playing)
+  if (RG.ban && !quiet) {
+    s.banClock = s.rep < BAN.rep ? (s.banClock || 0) + dt : 0;
+    if (s.banClock >= BAN.secs) { runOut(s); return; }
+  }
   // money
   const got = e.net * dt;
   s.cash += got; if (e.income > 0) s.earned += e.income * dt;
@@ -341,6 +372,25 @@ function tick(s, dt, quiet) {
     if (s.offer) { s.offer.left -= dt; if (s.offer.left <= 0) s.offer = null; }
     else if ((s.nextOffer -= dt) <= 0) { s.offer = makeOffer(s); s.nextOffer = 150 + rand(s) * 150; }
   }
+}
+
+/* Leave the current region and start over in region r, keeping a part of the cash. Earnings this run carry on. */
+function relocate(s, r, keep) {
+  const kept = Math.floor(s.cash * keep), L = s.legacy, R = REGIONS[r];
+  const n = fresh(L);
+  ['name', 'theme', 'earned', 'stats', 'software', 'banned', 'boost', 'seed', 'log', 'day', 't', 'nid'].forEach(k => { if (s[k] !== undefined) n[k] = s[k]; });
+  Object.keys(n).forEach(k => { s[k] = n[k]; });
+  Object.keys(s).forEach(k => { if (!(k in n)) delete s[k]; });
+  s.region = r; s.cash = kept + 5000 * lvl(L.perks, 'start'); s.rep = R.startRep; s.banClock = 0;
+  s.stats.moves = (s.stats.moves || 0) + 1;
+  L.regions = L.regions || {}; L.regions[R.id] = 1;
+  return kept;
+}
+function runOut(s) {
+  const from = region(s); s.banned[from.id] = 1; s.legacy.bans = (s.legacy.bans || 0) + 1;
+  let to = s.region - 1; while (to > 0 && s.banned[REGIONS[to].id]) to--;
+  const kept = relocate(s, to, BAN.keep);
+  note(s, 'Run out of ' + from.name + '. The county boards voted to pull your permits. Back in ' + REGIONS[to].name + ' with ' + fmtMoney(kept) + '.', 'bad');
 }
 
 /* Time away: run the routes in one-minute steps, capped by the away-time limit. Returns what happened. */
@@ -385,6 +435,12 @@ tiers('perfect', (v, i) => ['Nobody missed', 'Clean week', 'Reliable', 'Never mi
 tiers('sale', (v, i) => ['Sold it', 'Serial founder', 'Dynasty'][i], v => 'Sell the company ' + v + ' time' + (v > 1 ? 's' : '') + '.', [1, 3, 10], s => s.legacy.sales, 'star');
 [['commercial', 'Open for business'], ['rolloff', 'Box drop'], ['arms', 'Look, no hands'], ['recycling', 'Blue carts'], ['mrf', 'Sort it out'], ['transfer', 'Middle man'], ['landfill', 'King of the hill'], ['cng', 'Clean air'], ['compost', 'Green carts']].forEach(([k, n]) =>
   ACH.push({ id: 'u_' + k, group: 'unlock', name: n, desc: 'Get ' + UNLOCKS[k].name + '.', goal: 1, get: s => s.unlocks[k] ? 1 : 0, icon: 'key' }));
+ACH.push({ id: 'move1', group: 'region', name: 'Hit the road', desc: 'Move the company to a new region.', goal: 1, get: s => s.stats.moves || 0, icon: 'map' });
+ACH.push({ id: 'region3', group: 'region', name: 'Out west', desc: 'Run a company in the High Plains.', goal: 1, get: s => s.legacy.regions && s.legacy.regions.plains ? 1 : 0, icon: 'map' });
+ACH.push({ id: 'region4', group: 'region', name: 'Beach routes', desc: 'Run a company on the Gulf Coast.', goal: 1, get: s => s.legacy.regions && s.legacy.regions.coast ? 1 : 0, icon: 'map' });
+ACH.push({ id: 'region5', group: 'region', name: 'Dust and heat', desc: 'Run a company in the Red Desert.', goal: 1, get: s => s.legacy.regions && s.legacy.regions.desert ? 1 : 0, icon: 'map' });
+ACH.push({ id: 'region6', group: 'region', name: 'City hall', desc: 'Run a company in Capital Metro.', goal: 1, get: s => s.legacy.regions && s.legacy.regions.metro ? 1 : 0, icon: 'map' });
+ACH.push({ id: 'banned', group: 'banned', name: 'Run out of town', desc: 'Get banned from a region. It happens.', goal: 1, get: s => s.legacy.bans || 0, icon: 'moon' });
 ACH.push({ id: 'rep100', group: 'misc', name: 'Five stars', desc: 'Reach a reputation of 95.', goal: 95, get: s => s.rep, icon: 'star' });
 ACH.push({ id: 'trader', group: 'misc', name: 'Commodity trader', desc: 'See recycling prices above 1.5x.', goal: 1.5, get: s => s.stats.maxPrice, icon: 'chart' });
 ACH.push({ id: 'away', group: 'misc', name: 'Night shift', desc: 'Let the routes run while you are away for an hour in total.', goal: 3600, get: s => s.stats.away, icon: 'moon' });
@@ -404,6 +460,7 @@ function nextGoals(s, n) {
   ACH.forEach(a => {
     if (s.legacy.achievements[a.id] || seen[a.group]) return; seen[a.group] = 1;
     if (a.group === 'sale' && s.earned < 3e5) return;
+    if (a.group === 'banned' || (a.group === 'region' && s.earned < 3e5)) return;
     list.push({ a, p: Math.min(1, Math.max(0, a.get(s) / a.goal)) });
   });
   return list.sort((x, y) => y.p - x.p).slice(0, n || 3);
@@ -422,7 +479,7 @@ const exportCode = s => (typeof btoa === 'function' ? btoa(unescape(encodeURICom
 const importCode = c => load(typeof atob === 'function' ? decodeURIComponent(escape(atob(c.trim()))) : Buffer.from(c.trim(), 'base64').toString());
 
 const VERSION = '1.1.0', PRIVACY_URL = 'https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html';
-const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, SOFTWARE, UNLOCKS, LEGACY, BASE, TAU, ACH, STREETS,
+const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, town, REGIONS, BAN, region, SOFTWARE, UNLOCKS, LEGACY, BASE, TAU, ACH, STREETS,
   fresh, tick, catchUp, economy, working, capacity, market, slots, truckCount, needDrivers, mults, tapValue, price, act, starsFor,
   checkAch, nextGoals, makeOffer, fmt, fmtMoney, save, load, exportCode, importCode, lvl };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TT = api;

@@ -102,6 +102,34 @@ h3{font:600 15px/1.25 var(--sans);margin:0}
 .scene .truck.hop{animation-play-state:running}
 @keyframes drive{from{transform:translateX(-90px)}to{transform:translateX(460px)}}
 @media (prefers-reduced-motion:reduce){.scene .truck{animation:none;transform:translateX(150px)}}
+/* region looks: light values, then dark */
+.scene.t-lakes{--sky:#D6E6EE;--grass:#BCD3A8;--house:#7A6A58}
+.scene.t-plains{--sky:#E4EBF0;--grass:#D9C88E;--house:#8A7A62}
+.scene.t-coast{--sky:#CFE8F2;--grass:#EADBB0;--house:#9A8C7A}
+.scene.t-desert{--sky:#F2E0C4;--grass:#E2C08E;--house:#B07A50;--road:#CDB79A}
+.scene.t-metro{--sky:#D5DAE3;--grass:#AEB6A4;--house:#5D6780}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .scene.t-lakes{--sky:#152338;--grass:#1C2E26;--house:#6E6252}
+  :root:not([data-theme="light"]) .scene.t-plains{--sky:#1A2236;--grass:#3A3420;--house:#77684F}
+  :root:not([data-theme="light"]) .scene.t-coast{--sky:#122436;--grass:#3E3826;--house:#7F7464}
+  :root:not([data-theme="light"]) .scene.t-desert{--sky:#2A2030;--grass:#4A3626;--house:#8C5E3C;--road:#3A3028}
+  :root:not([data-theme="light"]) .scene.t-metro{--sky:#121A2C;--grass:#26302A;--house:#3E4862}}
+:root[data-theme="dark"] .scene.t-lakes{--sky:#152338;--grass:#1C2E26;--house:#6E6252}
+:root[data-theme="dark"] .scene.t-plains{--sky:#1A2236;--grass:#3A3420;--house:#77684F}
+:root[data-theme="dark"] .scene.t-coast{--sky:#122436;--grass:#3E3826;--house:#7F7464}
+:root[data-theme="dark"] .scene.t-desert{--sky:#2A2030;--grass:#4A3626;--house:#8C5E3C;--road:#3A3028}
+:root[data-theme="dark"] .scene.t-metro{--sky:#121A2C;--grass:#26302A;--house:#3E4862}
+.scene .sail{animation:sail 40s linear infinite}
+@keyframes sail{from{transform:translateX(-20px)}to{transform:translateX(380px)}}
+.scene .blades{animation:spin 4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scene .waves{animation:waves 3s linear infinite}
+@keyframes waves{to{transform:translateX(40px)}}
+.scene .blink{animation:blink 6s steps(1) infinite}
+@keyframes blink{50%{opacity:.15}}
+/* the sun goes down and comes up again every few minutes */
+.scene .tint{position:absolute;inset:0;pointer-events:none;animation:daylight 240s linear infinite}
+@keyframes daylight{0%,40%{background:transparent}50%{background:rgba(232,120,40,.16)}60%,80%{background:rgba(10,18,50,.32)}90%{background:rgba(240,170,90,.12)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.scene .sail,.scene .blades,.scene .waves,.scene .blink,.scene .tint{animation:none}}
 .scene .lbl{position:absolute;left:10px;top:8px;font-size:12px;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--panel) 80%,transparent);padding:2px 8px;border-radius:12px}
 
 .actions{display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:10px}
@@ -187,14 +215,31 @@ const TOWNS = [
   { id: 'ashby', name: 'Port Ashby', homes: 60000, biz: 3800, sites: 380, cost: 3.5e7 },
   { id: 'metro', name: 'Metro Bay', homes: 220000, biz: 14000, sites: 1400, cost: 6e8 }
 ];
-const REGION_NAMES = ['Tri-County', 'Lakeshore', 'High Plains', 'Iron Range', 'Gulf Coast', 'Northwoods', 'Desert Valley', 'Twin Rivers', 'Bluegrass', 'Red Rock', 'Pine Barrens', 'Silver Coast'];
-/* After the named towns the map keeps going: each region is bigger and dearer than the last. */
-function townDef(i) {
-  if (i < TOWNS.length) return TOWNS[i];
+const COUNTY_NAMES = ['Three Forks', 'Iron Range', 'Northwoods', 'Twin Rivers', 'Bluegrass', 'Red Rock', 'Pine Barrens', 'Silver Coast', 'Stone Ridge', 'Fox Hollow', 'Elk Run', 'Copper Hills'];
+
+/* Regions: the company works one region at a time. Moving starts over there with a small part of the cash.
+   Later regions pay more and have bigger towns, but people trust slowly, turn on you fast,
+   and can run you out of the region for good (until you sell the company). */
+const REGIONS = [
+  { id: 'valley', name: 'Maple Valley', about: 'Home. Small towns that give a new hauler a fair shot.', towns: ['Maple Hollow', 'Cedar Falls', 'Riverton', 'Granite City', 'Port Ashby', 'Metro Bay'], scale: 1, rate: 1, up: 1, down: 1, startRep: 60, ban: false, need: 0 },
+  { id: 'lakes', name: 'Lake Country', about: 'Lake towns and summer cabins. Friendly, but they remember a missed pickup.', towns: ['Loon Lake', 'Birchport', 'Two Harbors', 'Clearwater', 'Pike Bay', 'Lakeview City'], scale: 1.6, rate: 1.5, up: 0.8, down: 1.4, startRep: 50, ban: true, need: 1e7 },
+  { id: 'plains', name: 'High Plains', about: 'Farm towns far apart. Long routes and proud people who are slow to trust.', towns: ['Dry Creek', 'Wheaton', 'Big Sky', 'Prairie Gate', 'Holt Junction', 'Plainsville'], scale: 2.4, rate: 2.2, up: 0.65, down: 1.8, startRep: 45, ban: true, need: 5e8 },
+  { id: 'coast', name: 'Gulf Coast', about: 'Beach towns full of tourists. Big money, and a storm of complaints when you slip.', towns: ['Pelican Key', 'Sandy Shores', 'Bayport', 'Palm Point', 'Harbor Isle', 'Coral City'], scale: 3.5, rate: 3.2, up: 0.5, down: 2.3, startRep: 40, ban: true, need: 1e10 },
+  { id: 'desert', name: 'Red Desert', about: 'Fast-growing desert towns. Heat, dust and city councils with short tempers.', towns: ['Dust Flats', 'Mesa Verde', 'Sun Valley', 'Red Butte', 'Cactus Springs', 'Phoenix Ridge'], scale: 5, rate: 4.5, up: 0.4, down: 2.8, startRep: 35, ban: true, need: 3e11 },
+  { id: 'metro', name: 'Capital Metro', about: 'The big city. Every council member has your number on speed dial.', towns: ['Old Town', 'Midtown', 'Harbor District', 'Uptown', 'Westside', 'Capital City'], scale: 7, rate: 6.5, up: 0.3, down: 3.4, startRep: 30, ban: true, need: 1e13 }
+];
+const BAN = { rep: 15, secs: 120, keep: 0.1 }; // below 15 reputation for 2 minutes of play gets you run out
+const region = s => REGIONS[s.region || 0];
+
+/* Towns in a region: its six named towns, then counties that keep getting bigger and dearer. */
+function townDef(i, r) {
+  const R = REGIONS[r || 0], sc = R.scale;
+  if (i < TOWNS.length) { const t = TOWNS[i]; return { id: t.id, name: R.towns[i], homes: Math.round(t.homes * sc), biz: Math.round(t.biz * sc), sites: Math.round(t.sites * sc), cost: t.cost * sc }; }
   const k = i - TOWNS.length + 1, base = TOWNS[TOWNS.length - 1];
-  const nm = REGION_NAMES[(k - 1) % REGION_NAMES.length] + (k > REGION_NAMES.length ? ' ' + (Math.floor((k - 1) / REGION_NAMES.length) + 1) : '');
-  return { id: 'r' + k, name: nm + ' Region', homes: Math.round(base.homes * Math.pow(3, k)), biz: Math.round(base.biz * Math.pow(3, k)), sites: Math.round(base.sites * Math.pow(3, k)), cost: base.cost * Math.pow(14, k) };
+  const nm = COUNTY_NAMES[(k - 1) % COUNTY_NAMES.length] + (k > COUNTY_NAMES.length ? ' ' + (Math.floor((k - 1) / COUNTY_NAMES.length) + 1) : '');
+  return { id: 'r' + k, name: nm + ' County', homes: Math.round(base.homes * sc * Math.pow(3, k)), biz: Math.round(base.biz * sc * Math.pow(3, k)), sites: Math.round(base.sites * sc * Math.pow(3, k)), cost: base.cost * sc * Math.pow(14, k) };
 }
+const town = (s, i) => townDef(i, s.region || 0);
 
 /* Software modules: the Roundsman suite, bought level by level. */
 const SOFTWARE = {
@@ -260,6 +305,7 @@ function fresh(legacy) {
     stats: { taps: 0, flyers: 0, roadcalls: 0, rushed: 0, contracts: 0, bestNet: 0, perfectDays: 0, missedDays: 0, away: 0, maxPrice: 1 },
     legacy, seed: (Math.random() * 2 ** 31) | 0,
     boost: 0,                 // seconds of 2x income left
+    region: 0, banned: {}, banClock: 0, // see REGIONS
     lastSeen: Date.now()
   };
   s.cash = 5000 * lvl(legacy.perks, 'start');
@@ -276,7 +322,7 @@ function rand(s) { // small seeded generator so the pacing bot and tests repeat
 /* ---------- derived numbers ---------- */
 function market(s) {
   const m = { res: 0, com: 0, ro: 0 };
-  for (let i = 0; i < s.towns; i++) { const t = townDef(i); m.res += t.homes; m.com += t.biz; m.ro += t.sites; }
+  for (let i = 0; i < s.towns; i++) { const t = town(s, i); m.res += t.homes; m.com += t.biz; m.ro += t.sites; }
   return m;
 }
 function slots(s) { return BASE.drivewaySlots + s.yards * BASE.yardSlots; }
@@ -288,7 +334,7 @@ function mults(s) {
   const sw = s.software, L = s.legacy.perks;
   return {
     cap: 1 + 0.12 * lvl(sw, 'planner'),
-    rev: (1 + 0.10 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars) * (s.boost > 0 ? 2 : 1),
+    rev: (1 + 0.10 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars) * (s.boost > 0 ? 2 : 1) * region(s).rate,
     growth: (1 + 0.25 * lvl(sw, 'portal')) * (1 + 0.3 * lvl(L, 'grow')) * (1 + 0.35 * s.marketing),
     brk: Math.pow(0.85, lvl(sw, 'reports')) / (1 + 0.25 * s.mechanics),
     repair: Math.pow(0.85, lvl(sw, 'dispatch')),
@@ -354,7 +400,7 @@ const price = {
   marketing: s => costAt(BASE.mktCost, BASE.mktMult, s.marketing),
   software: (s, k) => costAt(SOFTWARE[k].cost, SOFTWARE[k].mult, lvl(s.software, k)),
   unlock: (s, k) => UNLOCKS[k].cost,
-  town: s => townDef(s.towns).cost,
+  town: s => town(s, s.towns).cost,
   legacy: (s, k) => costAt(LEGACY[k].cost, LEGACY[k].mult, lvl(s.legacy.perks, k)),
   rush: (s, d) => Math.ceil(50 + d.left * (TRUCKS[d.type].cost / 400))
 };
@@ -390,7 +436,7 @@ const act = {
     const e = spend(s, U.cost); if (e) return e; s.unlocks[k] = true; note(s, U.name + ': done.', 'good'); return '';
   },
   expand(s) {
-    const e = spend(s, price.town(s)); if (e) return e; s.towns++; note(s, 'Now serving ' + townDef(s.towns - 1).name + '.', 'good'); return '';
+    const e = spend(s, price.town(s)); if (e) return e; s.towns++; note(s, 'Now serving ' + town(s, s.towns - 1).name + '.', 'good'); return '';
   },
   rush(s, i) {
     const d = s.down[i]; if (!d) return 'Already fixed.'; const e = spend(s, price.rush(s, d)); if (e) return e;
@@ -415,6 +461,14 @@ const act = {
     r.doubled = true; s.cash += r.cash; s.earned += r.cash; return '';
   },
   pause(s, k) { s.paused[k] = !s.paused[k]; return ''; },
+  move(s, r) {
+    r = +r; const R = REGIONS[r]; if (!R) return 'No such region.';
+    if (r === (s.region || 0)) return 'You are already here.';
+    if (s.banned[R.id]) return R.name + ' ran you out. Sell the company to try again.';
+    if (s.earned < R.need) return 'Earn ' + fmtMoney(R.need) + ' this run first.';
+    const kept = relocate(s, r, BAN.keep);
+    note(s, 'Moved to ' + R.name + ' with ' + fmtMoney(kept) + '. Starting with one pickup in ' + R.towns[0] + '.', 'good'); return '';
+  },
   /* Sell the company: stars from what this run earned, then a fresh start with everything Legacy keeps. */
   sell(s) {
     const st = starsFor(s); if (st < 1) return 'Buyers want a company that has earned at least $1M.';
@@ -446,9 +500,9 @@ function makeOffer(s) {
   if (!opts.length) return null;
   const o = opts[Math.floor(rand(s) * opts.length)], open = mk[o.svc] - s.cust[o.svc];
   const qty = Math.max(3, Math.min(open, Math.round(mk[o.svc] * o.size * (0.7 + rand(s) * 0.6))));
-  const town = townDef(Math.floor(rand(s) * s.towns)).name;
+  const where = town(s, Math.floor(rand(s) * s.towns)).name;
   const bonus = Math.round(qty * SERVICES[o.svc].rate * o.bonus * mults(s).rev);
-  return { svc: o.svc, title: o.title.replace('{t}', town), qty, bonus, left: 90 };
+  return { svc: o.svc, title: o.title.replace('{t}', where), qty, bonus, left: 90 };
 }
 
 /* ---------- the clock ---------- */
@@ -472,18 +526,23 @@ function tick(s, dt, quiet) {
 
   const e = economy(s);
   // customers: signed from the open market, faster with a good name; lost when service is poor
-  const repF = Math.pow(s.rep / 50, 1.5);
+  const repF = Math.pow(s.rep / 50, 1.5), RG = region(s);
   Object.keys(SERVICES).forEach(k => {
     if (SERVICES[k].unlock && !s.unlocks[SERVICES[k].unlock]) return;
     const open = mk[k] - s.cust[k];
     if (open > 0 && !(s.paused && s.paused[k])) s.cust[k] += Math.min(open, Math.max(open * BASE.growth * m.growth * repF * dt, (k === 'res' ? 0.6 : 0.05) * m.growth * repF * dt));
-    if (s.rep < 35) s.cust[k] *= Math.pow(1 - 0.002 * (35 - s.rep) / 35, dt);
+    if (s.rep < 35) s.cust[k] *= Math.pow(1 - 0.002 * RG.down * (35 - s.rep) / 35, dt);
     s.cust[k] = Math.max(0, Math.min(mk[k], s.cust[k]));
   });
   // reputation drifts toward how well you serve
   const ratio = e.totalCust > 0 ? e.totalMissed / e.totalCust : 0;
-  const target = ratio > 0 ? Math.max(5, 75 - 160 * ratio) : 75 + Math.min(25, s.mechanics * 2 + lvl(s.software, 'portal') * 2 + s.marketing);
-  s.rep += (target - s.rep) * Math.min(1, 0.02 * dt);
+  const target = ratio > 0 ? Math.max(5, 75 - 160 * RG.down * ratio) : 75 + Math.min(25, s.mechanics * 2 + lvl(s.software, 'portal') * 2 + s.marketing);
+  s.rep += (target - s.rep) * Math.min(1, 0.02 * (target > s.rep ? RG.up : RG.down) * dt);
+  // in the tougher regions, a reputation in the gutter for too long gets you run out (only while you are playing)
+  if (RG.ban && !quiet) {
+    s.banClock = s.rep < BAN.rep ? (s.banClock || 0) + dt : 0;
+    if (s.banClock >= BAN.secs) { runOut(s); return; }
+  }
   // money
   const got = e.net * dt;
   s.cash += got; if (e.income > 0) s.earned += e.income * dt;
@@ -502,6 +561,25 @@ function tick(s, dt, quiet) {
     if (s.offer) { s.offer.left -= dt; if (s.offer.left <= 0) s.offer = null; }
     else if ((s.nextOffer -= dt) <= 0) { s.offer = makeOffer(s); s.nextOffer = 150 + rand(s) * 150; }
   }
+}
+
+/* Leave the current region and start over in region r, keeping a part of the cash. Earnings this run carry on. */
+function relocate(s, r, keep) {
+  const kept = Math.floor(s.cash * keep), L = s.legacy, R = REGIONS[r];
+  const n = fresh(L);
+  ['name', 'theme', 'earned', 'stats', 'software', 'banned', 'boost', 'seed', 'log', 'day', 't', 'nid'].forEach(k => { if (s[k] !== undefined) n[k] = s[k]; });
+  Object.keys(n).forEach(k => { s[k] = n[k]; });
+  Object.keys(s).forEach(k => { if (!(k in n)) delete s[k]; });
+  s.region = r; s.cash = kept + 5000 * lvl(L.perks, 'start'); s.rep = R.startRep; s.banClock = 0;
+  s.stats.moves = (s.stats.moves || 0) + 1;
+  L.regions = L.regions || {}; L.regions[R.id] = 1;
+  return kept;
+}
+function runOut(s) {
+  const from = region(s); s.banned[from.id] = 1; s.legacy.bans = (s.legacy.bans || 0) + 1;
+  let to = s.region - 1; while (to > 0 && s.banned[REGIONS[to].id]) to--;
+  const kept = relocate(s, to, BAN.keep);
+  note(s, 'Run out of ' + from.name + '. The county boards voted to pull your permits. Back in ' + REGIONS[to].name + ' with ' + fmtMoney(kept) + '.', 'bad');
 }
 
 /* Time away: run the routes in one-minute steps, capped by the away-time limit. Returns what happened. */
@@ -546,6 +624,12 @@ tiers('perfect', (v, i) => ['Nobody missed', 'Clean week', 'Reliable', 'Never mi
 tiers('sale', (v, i) => ['Sold it', 'Serial founder', 'Dynasty'][i], v => 'Sell the company ' + v + ' time' + (v > 1 ? 's' : '') + '.', [1, 3, 10], s => s.legacy.sales, 'star');
 [['commercial', 'Open for business'], ['rolloff', 'Box drop'], ['arms', 'Look, no hands'], ['recycling', 'Blue carts'], ['mrf', 'Sort it out'], ['transfer', 'Middle man'], ['landfill', 'King of the hill'], ['cng', 'Clean air'], ['compost', 'Green carts']].forEach(([k, n]) =>
   ACH.push({ id: 'u_' + k, group: 'unlock', name: n, desc: 'Get ' + UNLOCKS[k].name + '.', goal: 1, get: s => s.unlocks[k] ? 1 : 0, icon: 'key' }));
+ACH.push({ id: 'move1', group: 'region', name: 'Hit the road', desc: 'Move the company to a new region.', goal: 1, get: s => s.stats.moves || 0, icon: 'map' });
+ACH.push({ id: 'region3', group: 'region', name: 'Out west', desc: 'Run a company in the High Plains.', goal: 1, get: s => s.legacy.regions && s.legacy.regions.plains ? 1 : 0, icon: 'map' });
+ACH.push({ id: 'region4', group: 'region', name: 'Beach routes', desc: 'Run a company on the Gulf Coast.', goal: 1, get: s => s.legacy.regions && s.legacy.regions.coast ? 1 : 0, icon: 'map' });
+ACH.push({ id: 'region5', group: 'region', name: 'Dust and heat', desc: 'Run a company in the Red Desert.', goal: 1, get: s => s.legacy.regions && s.legacy.regions.desert ? 1 : 0, icon: 'map' });
+ACH.push({ id: 'region6', group: 'region', name: 'City hall', desc: 'Run a company in Capital Metro.', goal: 1, get: s => s.legacy.regions && s.legacy.regions.metro ? 1 : 0, icon: 'map' });
+ACH.push({ id: 'banned', group: 'banned', name: 'Run out of town', desc: 'Get banned from a region. It happens.', goal: 1, get: s => s.legacy.bans || 0, icon: 'moon' });
 ACH.push({ id: 'rep100', group: 'misc', name: 'Five stars', desc: 'Reach a reputation of 95.', goal: 95, get: s => s.rep, icon: 'star' });
 ACH.push({ id: 'trader', group: 'misc', name: 'Commodity trader', desc: 'See recycling prices above 1.5x.', goal: 1.5, get: s => s.stats.maxPrice, icon: 'chart' });
 ACH.push({ id: 'away', group: 'misc', name: 'Night shift', desc: 'Let the routes run while you are away for an hour in total.', goal: 3600, get: s => s.stats.away, icon: 'moon' });
@@ -565,6 +649,7 @@ function nextGoals(s, n) {
   ACH.forEach(a => {
     if (s.legacy.achievements[a.id] || seen[a.group]) return; seen[a.group] = 1;
     if (a.group === 'sale' && s.earned < 3e5) return;
+    if (a.group === 'banned' || (a.group === 'region' && s.earned < 3e5)) return;
     list.push({ a, p: Math.min(1, Math.max(0, a.get(s) / a.goal)) });
   });
   return list.sort((x, y) => y.p - x.p).slice(0, n || 3);
@@ -583,7 +668,7 @@ const exportCode = s => (typeof btoa === 'function' ? btoa(unescape(encodeURICom
 const importCode = c => load(typeof atob === 'function' ? decodeURIComponent(escape(atob(c.trim()))) : Buffer.from(c.trim(), 'base64').toString());
 
 const VERSION = '1.1.0', PRIVACY_URL = 'https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html';
-const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, SOFTWARE, UNLOCKS, LEGACY, BASE, TAU, ACH, STREETS,
+const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, town, REGIONS, BAN, region, SOFTWARE, UNLOCKS, LEGACY, BASE, TAU, ACH, STREETS,
   fresh, tick, catchUp, economy, working, capacity, market, slots, truckCount, needDrivers, mults, tapValue, price, act, starsFor,
   checkAch, nextGoals, makeOffer, fmt, fmtMoney, save, load, exportCode, importCode, lvl };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TT = api;
@@ -714,7 +799,7 @@ const T = window.TT, $ = s => document.querySelector(s);
 const KEY = 'trash-tycoon-save-v1'; // kept from the game's first name so existing saves carry over
 const money = T.fmtMoney, num = T.fmt, M = window.Money;
 const clock = sec => { sec = Math.ceil(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
-let S, tab = 'route', binds = {}, sections = {}, bid = 0, lastFrame = Date.now(), newTrophies = 0;
+let S, shownRegion = 0, tab = 'route', binds = {}, sections = {}, bid = 0, lastFrame = Date.now(), newTrophies = 0;
 
 /* ---------- icons ---------- */
 const P = {
@@ -790,7 +875,7 @@ function tabsBar() {
   $('#tabs').innerHTML = '<div class="in" role="tablist">' + TABS.map(([k, n]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${ic(k)}<span>${n}</span><i class="dot" id="dot-${k}"></i></button>`).join('') + '</div>';
 }
 function show(k) {
-  tab = k; binds = {}; sections = {}; header();
+  tab = k; shownRegion = S.region || 0; binds = {}; sections = {}; header();
   document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === k ? 'true' : 'false'));
   if (k === 'trophies') newTrophies = 0;
   $('#main').innerHTML = VIEWS[k](); window.scrollTo(0, 0); refresh(); try { localStorage.setItem(KEY + '-tab', k); } catch (e) { /* private mode */ }
@@ -804,17 +889,52 @@ function truckSvg(k) {
   const h = k === 'roll' ? 12 : 18;
   return `<rect x="0" y="${22 - h}" width="44" height="${h}" rx="3" fill="${c}"/><rect x="44" y="2" width="16" height="20" rx="3" fill="var(--cab)"/><rect x="48" y="5" width="9" height="7" rx="1" fill="var(--sky)"/>${k === 'front' ? '<rect x="58" y="0" width="3" height="10" fill="#555"/>' : ''}${k === 'side' ? '<rect x="18" y="0" width="4" height="8" fill="#555"/>' : ''}<circle cx="10" cy="23" r="4.5" fill="#222"/><circle cx="34" cy="23" r="4.5" fill="#222"/><circle cx="52" cy="23" r="4.5" fill="#222"/>`;
 }
+/* Each region has its own street. Everything sits above the road line (y 86). */
+function backdrop(id) {
+  let h = '';
+  const house = (x, hh, door) => `<rect x="${x}" y="${70 - hh}" width="34" height="${hh}" fill="var(--house)" opacity=".85"/><path d="M${x - 3} ${70 - hh}l20-14 20 14z" fill="var(--house)"/><rect x="${x + 13}" y="58" width="8" height="12" fill="var(--sky)" opacity=".6"/>${door || ''}`;
+  const can = (x, i) => `<rect x="${x}" y="76" width="7" height="10" rx="1" fill="${i % 3 === 0 ? 'var(--svc)' : 'var(--good)'}"/>`;
+  if (id === 'lakes') {
+    h += `<rect y="44" width="360" height="26" fill="#5E8FB8" opacity=".55"/><g class="sail"><path d="M0 52l10-14v14z" fill="#F5F1E3"/><path d="M-4 52h18l-3 4h-12z" fill="#7A4E2D"/></g>`;
+    for (let i = 0; i < 7; i++) { const x = 6 + i * 52; h += i % 2 ? `<path d="M${x + 8} 70l12-30 12 30z" fill="#2F5D45"/><path d="M${x + 12} 56l8-22 8 22z" fill="#3E7356"/>` : house(x, 22 + (i * 5 % 8)); h += can(x + 38, i); }
+  } else if (id === 'plains') {
+    h += `<rect x="40" y="38" width="44" height="32" fill="#A8401A" opacity=".9"/><path d="M36 38l26-16 26 16z" fill="#7A2E12"/><rect x="56" y="52" width="12" height="18" fill="#F5F1E3" opacity=".8"/>
+      <rect x="92" y="22" width="16" height="48" rx="8" fill="#B8B2A0"/><path d="M92 30h16" stroke="#8E8878"/>
+      <rect x="230" y="30" width="3" height="40" fill="#6B6455"/><g class="blades" style="transform-origin:231.5px 30px"><path d="M231.5 30l0-16M231.5 30l14 8M231.5 30l-14 8" stroke="#6B6455" stroke-width="3" stroke-linecap="round"/></g>
+      <path d="M140 66h80M140 60h80" stroke="#8F6F1F" stroke-width="1.5"/>`;
+    for (let x = 140; x <= 220; x += 16) h += `<rect x="${x}" y="56" width="2" height="14" fill="#8F6F1F"/>`;
+    h += house(270, 24) + can(310, 0) + can(130, 1) + can(30, 2);
+  } else if (id === 'coast') {
+    h += `<circle cx="300" cy="22" r="12" fill="#F2C14E" opacity=".9"/><rect y="46" width="360" height="24" fill="#3C8FB0" opacity=".6"/><path class="waves" d="M-40 52q10-4 20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0" fill="none" stroke="#F5F1E3" stroke-width="1.5" opacity=".7"/>`;
+    const pastel = ['#E8A4A0', '#F2D49B', '#9FD3C7', '#B9C7E8'];
+    for (let i = 0; i < 6; i++) { const x = 8 + i * 60; h += `<rect x="${x}" y="40" width="32" height="20" fill="${pastel[i % 4]}"/><path d="M${x - 3} 40l19-11 19 11z" fill="#C97B5A"/><rect x="${x + 3}" y="60" width="3" height="10" fill="#7A6A55"/><rect x="${x + 26}" y="60" width="3" height="10" fill="#7A6A55"/>
+      <rect x="${x + 44}" y="40" width="3" height="30" fill="#8C6A3F"/><path d="M${x + 45} 40q-12 -2 -16 6M${x + 45} 40q12 -2 16 6M${x + 45} 40q-6 -10 -14 -10M${x + 45} 40q6 -10 14 -10" stroke="#3E7A4A" stroke-width="3" fill="none" stroke-linecap="round"/>` + can(x + 36, i); }
+  } else if (id === 'desert') {
+    h += `<circle cx="320" cy="20" r="11" fill="#F2A541" opacity=".9"/><path d="M120 70v-30h40l10-8h60l8 8h30v30z" fill="#B5653A" opacity=".55"/>`;
+    for (let i = 0; i < 6; i++) { const x = 6 + i * 60; h += `<rect x="${x}" y="48" width="38" height="22" fill="#D9A06B"/><rect x="${x + 4}" y="44" width="30" height="5" fill="#C48A57"/><rect x="${x + 6}" y="54" width="7" height="7" fill="#7A4E2D" opacity=".7"/><rect x="${x + 22}" y="56" width="9" height="14" fill="#7A4E2D" opacity=".8"/>`;
+      h += `<path d="M${x + 49} 70v-22M${x + 49} 58h-5v-6M${x + 49} 54h5v-5" stroke="#4F7A43" stroke-width="4" stroke-linecap="round" fill="none"/>` + can(x + 40, i); }
+  } else if (id === 'metro') {
+    const tall = [62, 40, 78, 52, 88, 46, 70, 58, 82, 44];
+    tall.forEach((t, i) => { const x = i * 36; h += `<rect x="${x}" y="${70 - t}" width="32" height="${t}" fill="var(--house)" opacity="${.65 + (i % 3) * .1}"/>`;
+      for (let wy = 74 - t; wy < 64; wy += 9) for (let wx = x + 5; wx < x + 28; wx += 8) h += `<rect class="win${(wx + wy) % 5 === 0 ? ' blink' : ''}" x="${wx}" y="${wy}" width="4" height="5" fill="#F2D49B" opacity="${(wx * 7 + wy) % 4 === 0 ? .9 : .3}"/>`;
+      h += can(x + 26, i); });
+  } else {
+    for (let i = 0; i < 7; i++) { const x = 8 + i * 52; h += house(x, 26 + (i * 7 % 12)) + can(x + 38, i); }
+  }
+  return h;
+}
 function scene() {
-  const gold = M.supporter, w = T.working(S), list = []; ['side', 'rear', 'front', 'roll', 'pickup'].forEach(k => { for (let i = 0; i < w[k] && list.length < 5; i++) list.push(k); });
-  let houses = ''; for (let i = 0; i < 7; i++) { const x = 8 + i * 52, h = 26 + (i * 7 % 12); houses += `<rect x="${x}" y="${70 - h}" width="34" height="${h}" fill="var(--house)" opacity=".85"/><path d="M${x - 3} ${70 - h}l20-14 20 14z" fill="var(--house)"/><rect x="${x + 13}" y="${58}" width="8" height="12" fill="var(--sky)" opacity=".6"/><rect x="${x + 38}" y="76" width="7" height="10" rx="1" fill="${i % 3 === 0 ? 'var(--svc)' : 'var(--good)'}"/>`; }
+  const gold = M.supporter, R = T.region(S), w = T.working(S), list = []; ['side', 'rear', 'front', 'roll', 'pickup'].forEach(k => { for (let i = 0; i < w[k] && list.length < 5; i++) list.push(k); });
   const dur = Math.max(7, 16 - list.length * 1.5);
   const trucks = list.map((k, i) => `<g class="truck" style="--dur:${dur}s;animation-delay:-${(i * dur / Math.max(1, list.length)).toFixed(2)}s"><g transform="translate(0 ${i % 2 ? 98 : 84})">${truckSvg(k)}</g></g>`).join('');
-  return `<div class="scene" aria-hidden="true"${gold ? ' style="--cab:#C9A13B"' : ''}><svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice"><rect y="70" width="360" height="16" fill="var(--grass)"/>${houses}<rect y="86" width="360" height="46" fill="var(--road)"/><path d="M0 110h360" stroke="var(--panel)" stroke-width="2" stroke-dasharray="14 12" opacity=".7"/>${trucks}</svg><span class="lbl">${esc(T.townDef(S.towns - 1).name)}${S.towns > 1 ? ' and ' + (S.towns - 1) + ' more' : ''}</span></div>`;
+  return `<div class="scene t-${R.id}" aria-hidden="true"${gold ? ' style="--cab:#C9A13B"' : ''}><svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice"><rect y="70" width="360" height="16" fill="var(--grass)"/>${backdrop(R.id)}<rect y="86" width="360" height="46" fill="var(--road)"/><path d="M0 110h360" stroke="var(--panel)" stroke-width="2" stroke-dasharray="14 12" opacity=".7"/>${trucks}</svg><i class="tint"></i><span class="lbl">${esc(T.town(S, S.towns - 1).name)}${S.towns > 1 ? ' and ' + (S.towns - 1) + ' more' : ''} · ${esc(R.name)}</span></div>`;
 }
 
 /* ---------- tips for a new player ---------- */
 function tip() {
-  const e = T.economy(S);
+  const e = T.economy(S), R = T.region(S);
+  if (R.ban && S.rep < T.BAN.rep) return 'The county boards are fed up. Get your reputation above ' + T.BAN.rep + ' in the next ' + Math.max(1, Math.ceil(T.BAN.secs - (S.banClock || 0))) + 's or ' + R.name + ' runs you out.';
+  if (R.ban && S.rep < T.BAN.rep + 10) return 'People in ' + R.name + ' are losing patience. If your reputation drops below ' + T.BAN.rep + ' for too long, you get run out of the region.';
   if (S.legacy.sales === 0 && T.truckCount(S) === 1 && S.cash < T.price.truck(S, 'pickup')) return 'Tap Ride along to earn your first dollars, and hand out flyers to sign up homes. Your pickup serves ' + Math.round(T.TRUCKS.pickup.cap * T.mults(S).cap) + ' homes.';
   if (T.truckCount(S) - 1 > S.drivers) return 'A truck is parked with nobody to drive it. Hire a driver on the Fleet tab.';
   if (e.totalMissed >= 1) return num(e.totalMissed) + (Math.floor(e.totalMissed) === 1 ? ' customer is' : ' customers are') + ' being missed. Add trucks on the Fleet tab, or pause sign-ups below, before your reputation drops.';
@@ -835,7 +955,7 @@ const svcRow = k => {
 
 const VIEWS = {
   route() {
-    return SEC(() => JSON.stringify(T.working(S)) + S.towns + M.supporter, scene) +
+    return SEC(() => JSON.stringify(T.working(S)) + S.towns + M.supporter + S.region, scene) +
       `<div class="actions"><button class="tap" data-a="tap" id="tapbtn">Ride along<small ${B(() => '+' + money(T.tapValue(S), 2) + ' a tap')}></small></button>
        <button class="tap alt" data-a="flyer">Hand out flyers<small>sign up neighbors</small></button></div>` +
       SEC(() => M.offered, () => !M.offered ? '' : `<div class="card"><div class="item"><div class="ic">${ic('bolt')}</div><div class="grow"><h3>Double income</h3>
@@ -870,12 +990,19 @@ const VIEWS = {
   },
 
   grow() {
-    return `<h2>Towns</h2>` + SEC(() => S.towns, () => {
-      let h = ''; for (let i = 0; i < S.towns; i++) { const t = T.townDef(i); h += `<div class="card"><div class="item"><div class="ic">${ic('map')}</div><div class="grow"><h3>${esc(t.name)} <span class="pill good">serving</span></h3><div class="about num">${num(t.homes)} homes · ${num(t.biz)} businesses · ${num(t.sites)} job sites</div></div></div></div>`; }
-      const n = T.townDef(S.towns);
+    return `<h2>Towns</h2>` + SEC(() => S.towns + '|' + S.region, () => {
+      let h = ''; for (let i = 0; i < S.towns; i++) { const t = T.town(S, i); h += `<div class="card"><div class="item"><div class="ic">${ic('map')}</div><div class="grow"><h3>${esc(t.name)} <span class="pill good">serving</span></h3><div class="about num">${num(t.homes)} homes · ${num(t.biz)} businesses · ${num(t.sites)} job sites</div></div></div></div>`; }
+      const n = T.town(S, S.towns);
       h += `<div class="card offer"><div class="item"><div class="ic">${ic('map')}</div><div class="grow"><h3>${esc(n.name)}</h3><div class="about num">${num(n.homes)} homes · ${num(n.biz)} businesses · ${num(n.sites)} job sites. Win the franchise to start signing them up.</div></div>${buyBtn('Bid', () => T.price.town(S), 'expand')}</div></div>`;
       return h;
-    }) + `<h2>Marketing</h2><div class="card"><div class="item"><div class="ic">${ic('pen')}</div><div class="grow"><h3>Door hangers and ads <span class="pill" ${B(() => 'level ' + S.marketing)}></span></h3><div class="about">+35% sign-up speed each level.</div></div>${buyBtn('Run', () => T.price.marketing(S), 'marketing')}</div></div>
+    }) + `<h2>Regions</h2><p class="muted small" style="margin-top:-4px">Move the company to start over in a new region with a tenth of your cash. Later regions pay more, but trust comes slower, goes faster, and they can run you out for good. Selling the company clears every ban.</p>` +
+      SEC(() => [S.region, Object.keys(S.banned || {}).join(), T.REGIONS.filter(r => S.earned >= r.need).length].join('|'), () => T.REGIONS.map((R, i) => {
+        const here = i === S.region, banned = S.banned && S.banned[R.id], open = S.earned >= R.need;
+        const diff = ['Easy', 'Fair', 'Tough', 'Hard', 'Harsh', 'Brutal'][i];
+        const pill = here ? '<span class="pill good">you are here</span>' : banned ? '<span class="pill bad">ran you out</span>' : '';
+        const btn = here ? '' : banned ? '<button class="btn" disabled>Banned</button>' : open ? `<button class="btn" data-a="moveAsk" data-x="${i}">Move<small>keep ${money(S.cash * T.BAN.keep)}</small></button>` : `<button class="btn" disabled>Locked<small>earn ${money(R.need)}</small></button>`;
+        return `<div class="card${here ? ' offer' : ''}"><div class="item"><div class="ic">${ic('map')}</div><div class="grow"><h3>${esc(R.name)} ${pill}</h3><div class="about">${esc(R.about)}</div><div class="meta small muted">${i ? diff + ' · pays ' + R.rate + '× · towns ' + R.scale + '× bigger · can ban you' : 'Easy · never bans you'}</div></div>${btn}</div></div>`;
+      }).join('')) + `<h2>Marketing</h2><div class="card"><div class="item"><div class="ic">${ic('pen')}</div><div class="grow"><h3>Door hangers and ads <span class="pill" ${B(() => 'level ' + S.marketing)}></span></h3><div class="about">+35% sign-up speed each level.</div></div>${buyBtn('Run', () => T.price.marketing(S), 'marketing')}</div></div>
       <h2>Your market</h2>` + SEC(() => Object.keys(S.unlocks).join(), () => ['res', 'com', 'ro'].map(svcRow).join('')) +
       `<div class="card"><h3>Money per second</h3>` + [['Collection', e => e.gross], ['Recycling sales', e => e.recycle, () => S.unlocks.recycling], ['Tipping fees from others', e => e.tipping, () => S.unlocks.landfill], ['Dump fees', e => -e.dump], ['Fuel', e => -e.fuel], ['Wages', e => -e.wages]].map(([l, f, on]) => `<div class="split" ${on ? B(() => ({ show: !!on() })) : ''}><span>${l}</span><b class="num" ${B(() => money(f(T.economy(S)), 2))}></b></div>`).join('') +
       `<div class="split"><span>Recycling price</span><b class="num" ${B(() => S.unlocks.recycling ? S.price.toFixed(2) + '×' : 'no program yet')}></b></div></div>`;
@@ -953,6 +1080,11 @@ const special = {
   rushId(b) { const i = S.down.findIndex(d => d.id === b.dataset.x); return T.act.rush(S, i); },
   sellAsk() { const st = T.starsFor(S); modal(`<h2>Sell ${esc(S.name || 'the company')}?</h2><p>You get <b>${st} Legacy star${st > 1 ? 's' : ''}</b> and start over with one pickup in Maple Hollow. Trophies and Legacy perks stay.</p><div class="btns"><button class="btn ghost" data-m="no">Keep running it</button><button class="btn" data-m="yes">Sell</button></div>`, k => { if (k === 'yes') { const name = S.name, theme = S.theme; S = T.act.sell(S); S.name = name; S.theme = theme; persist(); show('route'); } }); },
   legacy(b) { return T.act.legacy(S, b.dataset.x); },
+  moveAsk(b) {
+    const i = +b.dataset.x, R = T.REGIONS[i];
+    modal(`<h2>Move to ${esc(R.name)}?</h2><p>You leave your trucks, towns and customers behind and start over in ${esc(R.towns[0])} with one pickup and <b>${money(S.cash * T.BAN.keep)}</b> (a tenth of your cash).</p><p>You keep your office software, trophies, Legacy and this run's earnings. ${R.ban ? 'Reputation here starts at ' + R.startRep + ', climbs slower and drops faster. Fall below ' + T.BAN.rep + ' for too long and they run you out until you sell the company.' : ''}</p><div class="btns"><button class="btn ghost" data-m="no">Stay</button><button class="btn" data-m="yes">Move</button></div>`, k => { if (k === 'yes') { const e = T.act.move(S, i); if (e) note(e); persist(); show('route'); } });
+    return '';
+  },
   boostAsk() {
     if (S.boost > T.BASE.boostMax - T.BASE.boostSecs) return T.act.boost(S);
     M.reward().then(ok => { if (!ok) { note('The ad did not finish, so no boost this time.'); return; } const e = T.act.boost(S); note(e || 'Double income for 30 more minutes.'); persist(); refresh(); });
@@ -990,6 +1122,11 @@ function frame() {
   const now = Date.now(), gap = (now - lastFrame) / 1000; lastFrame = now;
   if (gap > 30) { S.lastSeen = now - gap * 1000; welcome(T.catchUp(S, now)); }
   else if (gap > 0) T.tick(S, gap);
+  if ((S.region || 0) !== shownRegion) { // run out of a region while playing
+    const from = T.REGIONS[shownRegion]; shownRegion = S.region || 0;
+    if (S.banned && S.banned[from.id]) modal(`<h2>Run out of ${esc(from.name)}</h2><p>Too many missed pickups and angry calls. The county boards pulled your permits, and you cannot work in ${esc(from.name)} again until you sell the company.</p><p>You are starting over in ${esc(T.region(S).name)} with a tenth of your cash. Keep enough trucks running next time.</p><div class="btns"><button class="btn" data-m="ok">Start over</button></div>`, () => {});
+    persist(); show(tab);
+  }
   const got = T.checkAch(S); got.forEach(toast); newTrophies += got.length;
   const dot = $('#dot-trophies'); if (dot) dot.classList.toggle('on', newTrophies > 0 && tab !== 'trophies');
   const fd = $('#dot-route'); if (fd) fd.classList.toggle('on', tab !== 'route' && (!!S.offer || S.down.length > 0));

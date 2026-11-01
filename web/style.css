@@ -89,6 +89,34 @@ h3{font:600 15px/1.25 var(--sans);margin:0}
 .scene .truck.hop{animation-play-state:running}
 @keyframes drive{from{transform:translateX(-90px)}to{transform:translateX(460px)}}
 @media (prefers-reduced-motion:reduce){.scene .truck{animation:none;transform:translateX(150px)}}
+/* region looks: light values, then dark */
+.scene.t-lakes{--sky:#D6E6EE;--grass:#BCD3A8;--house:#7A6A58}
+.scene.t-plains{--sky:#E4EBF0;--grass:#D9C88E;--house:#8A7A62}
+.scene.t-coast{--sky:#CFE8F2;--grass:#EADBB0;--house:#9A8C7A}
+.scene.t-desert{--sky:#F2E0C4;--grass:#E2C08E;--house:#B07A50;--road:#CDB79A}
+.scene.t-metro{--sky:#D5DAE3;--grass:#AEB6A4;--house:#5D6780}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .scene.t-lakes{--sky:#152338;--grass:#1C2E26;--house:#6E6252}
+  :root:not([data-theme="light"]) .scene.t-plains{--sky:#1A2236;--grass:#3A3420;--house:#77684F}
+  :root:not([data-theme="light"]) .scene.t-coast{--sky:#122436;--grass:#3E3826;--house:#7F7464}
+  :root:not([data-theme="light"]) .scene.t-desert{--sky:#2A2030;--grass:#4A3626;--house:#8C5E3C;--road:#3A3028}
+  :root:not([data-theme="light"]) .scene.t-metro{--sky:#121A2C;--grass:#26302A;--house:#3E4862}}
+:root[data-theme="dark"] .scene.t-lakes{--sky:#152338;--grass:#1C2E26;--house:#6E6252}
+:root[data-theme="dark"] .scene.t-plains{--sky:#1A2236;--grass:#3A3420;--house:#77684F}
+:root[data-theme="dark"] .scene.t-coast{--sky:#122436;--grass:#3E3826;--house:#7F7464}
+:root[data-theme="dark"] .scene.t-desert{--sky:#2A2030;--grass:#4A3626;--house:#8C5E3C;--road:#3A3028}
+:root[data-theme="dark"] .scene.t-metro{--sky:#121A2C;--grass:#26302A;--house:#3E4862}
+.scene .sail{animation:sail 40s linear infinite}
+@keyframes sail{from{transform:translateX(-20px)}to{transform:translateX(380px)}}
+.scene .blades{animation:spin 4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scene .waves{animation:waves 3s linear infinite}
+@keyframes waves{to{transform:translateX(40px)}}
+.scene .blink{animation:blink 6s steps(1) infinite}
+@keyframes blink{50%{opacity:.15}}
+/* the sun goes down and comes up again every few minutes */
+.scene .tint{position:absolute;inset:0;pointer-events:none;animation:daylight 240s linear infinite}
+@keyframes daylight{0%,40%{background:transparent}50%{background:rgba(232,120,40,.16)}60%,80%{background:rgba(10,18,50,.32)}90%{background:rgba(240,170,90,.12)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.scene .sail,.scene .blades,.scene .waves,.scene .blink,.scene .tint{animation:none}}
 .scene .lbl{position:absolute;left:10px;top:8px;font-size:12px;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--panel) 80%,transparent);padding:2px 8px;border-radius:12px}
 
 .actions{display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:10px}

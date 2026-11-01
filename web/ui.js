@@ -6,7 +6,7 @@ const T = window.TT, $ = s => document.querySelector(s);
 const KEY = 'trash-tycoon-save-v1'; // kept from the game's first name so existing saves carry over
 const money = T.fmtMoney, num = T.fmt, M = window.Money;
 const clock = sec => { sec = Math.ceil(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
-let S, tab = 'route', binds = {}, sections = {}, bid = 0, lastFrame = Date.now(), newTrophies = 0;
+let S, shownRegion = 0, tab = 'route', binds = {}, sections = {}, bid = 0, lastFrame = Date.now(), newTrophies = 0;
 
 /* ---------- icons ---------- */
 const P = {
@@ -82,7 +82,7 @@ function tabsBar() {
   $('#tabs').innerHTML = '<div class="in" role="tablist">' + TABS.map(([k, n]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${ic(k)}<span>${n}</span><i class="dot" id="dot-${k}"></i></button>`).join('') + '</div>';
 }
 function show(k) {
-  tab = k; binds = {}; sections = {}; header();
+  tab = k; shownRegion = S.region || 0; binds = {}; sections = {}; header();
   document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === k ? 'true' : 'false'));
   if (k === 'trophies') newTrophies = 0;
   $('#main').innerHTML = VIEWS[k](); window.scrollTo(0, 0); refresh(); try { localStorage.setItem(KEY + '-tab', k); } catch (e) { /* private mode */ }
@@ -96,17 +96,52 @@ function truckSvg(k) {
   const h = k === 'roll' ? 12 : 18;
   return `<rect x="0" y="${22 - h}" width="44" height="${h}" rx="3" fill="${c}"/><rect x="44" y="2" width="16" height="20" rx="3" fill="var(--cab)"/><rect x="48" y="5" width="9" height="7" rx="1" fill="var(--sky)"/>${k === 'front' ? '<rect x="58" y="0" width="3" height="10" fill="#555"/>' : ''}${k === 'side' ? '<rect x="18" y="0" width="4" height="8" fill="#555"/>' : ''}<circle cx="10" cy="23" r="4.5" fill="#222"/><circle cx="34" cy="23" r="4.5" fill="#222"/><circle cx="52" cy="23" r="4.5" fill="#222"/>`;
 }
+/* Each region has its own street. Everything sits above the road line (y 86). */
+function backdrop(id) {
+  let h = '';
+  const house = (x, hh, door) => `<rect x="${x}" y="${70 - hh}" width="34" height="${hh}" fill="var(--house)" opacity=".85"/><path d="M${x - 3} ${70 - hh}l20-14 20 14z" fill="var(--house)"/><rect x="${x + 13}" y="58" width="8" height="12" fill="var(--sky)" opacity=".6"/>${door || ''}`;
+  const can = (x, i) => `<rect x="${x}" y="76" width="7" height="10" rx="1" fill="${i % 3 === 0 ? 'var(--svc)' : 'var(--good)'}"/>`;
+  if (id === 'lakes') {
+    h += `<rect y="44" width="360" height="26" fill="#5E8FB8" opacity=".55"/><g class="sail"><path d="M0 52l10-14v14z" fill="#F5F1E3"/><path d="M-4 52h18l-3 4h-12z" fill="#7A4E2D"/></g>`;
+    for (let i = 0; i < 7; i++) { const x = 6 + i * 52; h += i % 2 ? `<path d="M${x + 8} 70l12-30 12 30z" fill="#2F5D45"/><path d="M${x + 12} 56l8-22 8 22z" fill="#3E7356"/>` : house(x, 22 + (i * 5 % 8)); h += can(x + 38, i); }
+  } else if (id === 'plains') {
+    h += `<rect x="40" y="38" width="44" height="32" fill="#A8401A" opacity=".9"/><path d="M36 38l26-16 26 16z" fill="#7A2E12"/><rect x="56" y="52" width="12" height="18" fill="#F5F1E3" opacity=".8"/>
+      <rect x="92" y="22" width="16" height="48" rx="8" fill="#B8B2A0"/><path d="M92 30h16" stroke="#8E8878"/>
+      <rect x="230" y="30" width="3" height="40" fill="#6B6455"/><g class="blades" style="transform-origin:231.5px 30px"><path d="M231.5 30l0-16M231.5 30l14 8M231.5 30l-14 8" stroke="#6B6455" stroke-width="3" stroke-linecap="round"/></g>
+      <path d="M140 66h80M140 60h80" stroke="#8F6F1F" stroke-width="1.5"/>`;
+    for (let x = 140; x <= 220; x += 16) h += `<rect x="${x}" y="56" width="2" height="14" fill="#8F6F1F"/>`;
+    h += house(270, 24) + can(310, 0) + can(130, 1) + can(30, 2);
+  } else if (id === 'coast') {
+    h += `<circle cx="300" cy="22" r="12" fill="#F2C14E" opacity=".9"/><rect y="46" width="360" height="24" fill="#3C8FB0" opacity=".6"/><path class="waves" d="M-40 52q10-4 20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0" fill="none" stroke="#F5F1E3" stroke-width="1.5" opacity=".7"/>`;
+    const pastel = ['#E8A4A0', '#F2D49B', '#9FD3C7', '#B9C7E8'];
+    for (let i = 0; i < 6; i++) { const x = 8 + i * 60; h += `<rect x="${x}" y="40" width="32" height="20" fill="${pastel[i % 4]}"/><path d="M${x - 3} 40l19-11 19 11z" fill="#C97B5A"/><rect x="${x + 3}" y="60" width="3" height="10" fill="#7A6A55"/><rect x="${x + 26}" y="60" width="3" height="10" fill="#7A6A55"/>
+      <rect x="${x + 44}" y="40" width="3" height="30" fill="#8C6A3F"/><path d="M${x + 45} 40q-12 -2 -16 6M${x + 45} 40q12 -2 16 6M${x + 45} 40q-6 -10 -14 -10M${x + 45} 40q6 -10 14 -10" stroke="#3E7A4A" stroke-width="3" fill="none" stroke-linecap="round"/>` + can(x + 36, i); }
+  } else if (id === 'desert') {
+    h += `<circle cx="320" cy="20" r="11" fill="#F2A541" opacity=".9"/><path d="M120 70v-30h40l10-8h60l8 8h30v30z" fill="#B5653A" opacity=".55"/>`;
+    for (let i = 0; i < 6; i++) { const x = 6 + i * 60; h += `<rect x="${x}" y="48" width="38" height="22" fill="#D9A06B"/><rect x="${x + 4}" y="44" width="30" height="5" fill="#C48A57"/><rect x="${x + 6}" y="54" width="7" height="7" fill="#7A4E2D" opacity=".7"/><rect x="${x + 22}" y="56" width="9" height="14" fill="#7A4E2D" opacity=".8"/>`;
+      h += `<path d="M${x + 49} 70v-22M${x + 49} 58h-5v-6M${x + 49} 54h5v-5" stroke="#4F7A43" stroke-width="4" stroke-linecap="round" fill="none"/>` + can(x + 40, i); }
+  } else if (id === 'metro') {
+    const tall = [62, 40, 78, 52, 88, 46, 70, 58, 82, 44];
+    tall.forEach((t, i) => { const x = i * 36; h += `<rect x="${x}" y="${70 - t}" width="32" height="${t}" fill="var(--house)" opacity="${.65 + (i % 3) * .1}"/>`;
+      for (let wy = 74 - t; wy < 64; wy += 9) for (let wx = x + 5; wx < x + 28; wx += 8) h += `<rect class="win${(wx + wy) % 5 === 0 ? ' blink' : ''}" x="${wx}" y="${wy}" width="4" height="5" fill="#F2D49B" opacity="${(wx * 7 + wy) % 4 === 0 ? .9 : .3}"/>`;
+      h += can(x + 26, i); });
+  } else {
+    for (let i = 0; i < 7; i++) { const x = 8 + i * 52; h += house(x, 26 + (i * 7 % 12)) + can(x + 38, i); }
+  }
+  return h;
+}
 function scene() {
-  const gold = M.supporter, w = T.working(S), list = []; ['side', 'rear', 'front', 'roll', 'pickup'].forEach(k => { for (let i = 0; i < w[k] && list.length < 5; i++) list.push(k); });
-  let houses = ''; for (let i = 0; i < 7; i++) { const x = 8 + i * 52, h = 26 + (i * 7 % 12); houses += `<rect x="${x}" y="${70 - h}" width="34" height="${h}" fill="var(--house)" opacity=".85"/><path d="M${x - 3} ${70 - h}l20-14 20 14z" fill="var(--house)"/><rect x="${x + 13}" y="${58}" width="8" height="12" fill="var(--sky)" opacity=".6"/><rect x="${x + 38}" y="76" width="7" height="10" rx="1" fill="${i % 3 === 0 ? 'var(--svc)' : 'var(--good)'}"/>`; }
+  const gold = M.supporter, R = T.region(S), w = T.working(S), list = []; ['side', 'rear', 'front', 'roll', 'pickup'].forEach(k => { for (let i = 0; i < w[k] && list.length < 5; i++) list.push(k); });
   const dur = Math.max(7, 16 - list.length * 1.5);
   const trucks = list.map((k, i) => `<g class="truck" style="--dur:${dur}s;animation-delay:-${(i * dur / Math.max(1, list.length)).toFixed(2)}s"><g transform="translate(0 ${i % 2 ? 98 : 84})">${truckSvg(k)}</g></g>`).join('');
-  return `<div class="scene" aria-hidden="true"${gold ? ' style="--cab:#C9A13B"' : ''}><svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice"><rect y="70" width="360" height="16" fill="var(--grass)"/>${houses}<rect y="86" width="360" height="46" fill="var(--road)"/><path d="M0 110h360" stroke="var(--panel)" stroke-width="2" stroke-dasharray="14 12" opacity=".7"/>${trucks}</svg><span class="lbl">${esc(T.townDef(S.towns - 1).name)}${S.towns > 1 ? ' and ' + (S.towns - 1) + ' more' : ''}</span></div>`;
+  return `<div class="scene t-${R.id}" aria-hidden="true"${gold ? ' style="--cab:#C9A13B"' : ''}><svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice"><rect y="70" width="360" height="16" fill="var(--grass)"/>${backdrop(R.id)}<rect y="86" width="360" height="46" fill="var(--road)"/><path d="M0 110h360" stroke="var(--panel)" stroke-width="2" stroke-dasharray="14 12" opacity=".7"/>${trucks}</svg><i class="tint"></i><span class="lbl">${esc(T.town(S, S.towns - 1).name)}${S.towns > 1 ? ' and ' + (S.towns - 1) + ' more' : ''} · ${esc(R.name)}</span></div>`;
 }
 
 /* ---------- tips for a new player ---------- */
 function tip() {
-  const e = T.economy(S);
+  const e = T.economy(S), R = T.region(S);
+  if (R.ban && S.rep < T.BAN.rep) return 'The county boards are fed up. Get your reputation above ' + T.BAN.rep + ' in the next ' + Math.max(1, Math.ceil(T.BAN.secs - (S.banClock || 0))) + 's or ' + R.name + ' runs you out.';
+  if (R.ban && S.rep < T.BAN.rep + 10) return 'People in ' + R.name + ' are losing patience. If your reputation drops below ' + T.BAN.rep + ' for too long, you get run out of the region.';
   if (S.legacy.sales === 0 && T.truckCount(S) === 1 && S.cash < T.price.truck(S, 'pickup')) return 'Tap Ride along to earn your first dollars, and hand out flyers to sign up homes. Your pickup serves ' + Math.round(T.TRUCKS.pickup.cap * T.mults(S).cap) + ' homes.';
   if (T.truckCount(S) - 1 > S.drivers) return 'A truck is parked with nobody to drive it. Hire a driver on the Fleet tab.';
   if (e.totalMissed >= 1) return num(e.totalMissed) + (Math.floor(e.totalMissed) === 1 ? ' customer is' : ' customers are') + ' being missed. Add trucks on the Fleet tab, or pause sign-ups below, before your reputation drops.';
@@ -127,7 +162,7 @@ const svcRow = k => {
 
 const VIEWS = {
   route() {
-    return SEC(() => JSON.stringify(T.working(S)) + S.towns + M.supporter, scene) +
+    return SEC(() => JSON.stringify(T.working(S)) + S.towns + M.supporter + S.region, scene) +
       `<div class="actions"><button class="tap" data-a="tap" id="tapbtn">Ride along<small ${B(() => '+' + money(T.tapValue(S), 2) + ' a tap')}></small></button>
        <button class="tap alt" data-a="flyer">Hand out flyers<small>sign up neighbors</small></button></div>` +
       SEC(() => M.offered, () => !M.offered ? '' : `<div class="card"><div class="item"><div class="ic">${ic('bolt')}</div><div class="grow"><h3>Double income</h3>
@@ -162,12 +197,19 @@ const VIEWS = {
   },
 
   grow() {
-    return `<h2>Towns</h2>` + SEC(() => S.towns, () => {
-      let h = ''; for (let i = 0; i < S.towns; i++) { const t = T.townDef(i); h += `<div class="card"><div class="item"><div class="ic">${ic('map')}</div><div class="grow"><h3>${esc(t.name)} <span class="pill good">serving</span></h3><div class="about num">${num(t.homes)} homes · ${num(t.biz)} businesses · ${num(t.sites)} job sites</div></div></div></div>`; }
-      const n = T.townDef(S.towns);
+    return `<h2>Towns</h2>` + SEC(() => S.towns + '|' + S.region, () => {
+      let h = ''; for (let i = 0; i < S.towns; i++) { const t = T.town(S, i); h += `<div class="card"><div class="item"><div class="ic">${ic('map')}</div><div class="grow"><h3>${esc(t.name)} <span class="pill good">serving</span></h3><div class="about num">${num(t.homes)} homes · ${num(t.biz)} businesses · ${num(t.sites)} job sites</div></div></div></div>`; }
+      const n = T.town(S, S.towns);
       h += `<div class="card offer"><div class="item"><div class="ic">${ic('map')}</div><div class="grow"><h3>${esc(n.name)}</h3><div class="about num">${num(n.homes)} homes · ${num(n.biz)} businesses · ${num(n.sites)} job sites. Win the franchise to start signing them up.</div></div>${buyBtn('Bid', () => T.price.town(S), 'expand')}</div></div>`;
       return h;
-    }) + `<h2>Marketing</h2><div class="card"><div class="item"><div class="ic">${ic('pen')}</div><div class="grow"><h3>Door hangers and ads <span class="pill" ${B(() => 'level ' + S.marketing)}></span></h3><div class="about">+35% sign-up speed each level.</div></div>${buyBtn('Run', () => T.price.marketing(S), 'marketing')}</div></div>
+    }) + `<h2>Regions</h2><p class="muted small" style="margin-top:-4px">Move the company to start over in a new region with a tenth of your cash. Later regions pay more, but trust comes slower, goes faster, and they can run you out for good. Selling the company clears every ban.</p>` +
+      SEC(() => [S.region, Object.keys(S.banned || {}).join(), T.REGIONS.filter(r => S.earned >= r.need).length].join('|'), () => T.REGIONS.map((R, i) => {
+        const here = i === S.region, banned = S.banned && S.banned[R.id], open = S.earned >= R.need;
+        const diff = ['Easy', 'Fair', 'Tough', 'Hard', 'Harsh', 'Brutal'][i];
+        const pill = here ? '<span class="pill good">you are here</span>' : banned ? '<span class="pill bad">ran you out</span>' : '';
+        const btn = here ? '' : banned ? '<button class="btn" disabled>Banned</button>' : open ? `<button class="btn" data-a="moveAsk" data-x="${i}">Move<small>keep ${money(S.cash * T.BAN.keep)}</small></button>` : `<button class="btn" disabled>Locked<small>earn ${money(R.need)}</small></button>`;
+        return `<div class="card${here ? ' offer' : ''}"><div class="item"><div class="ic">${ic('map')}</div><div class="grow"><h3>${esc(R.name)} ${pill}</h3><div class="about">${esc(R.about)}</div><div class="meta small muted">${i ? diff + ' · pays ' + R.rate + '× · towns ' + R.scale + '× bigger · can ban you' : 'Easy · never bans you'}</div></div>${btn}</div></div>`;
+      }).join('')) + `<h2>Marketing</h2><div class="card"><div class="item"><div class="ic">${ic('pen')}</div><div class="grow"><h3>Door hangers and ads <span class="pill" ${B(() => 'level ' + S.marketing)}></span></h3><div class="about">+35% sign-up speed each level.</div></div>${buyBtn('Run', () => T.price.marketing(S), 'marketing')}</div></div>
       <h2>Your market</h2>` + SEC(() => Object.keys(S.unlocks).join(), () => ['res', 'com', 'ro'].map(svcRow).join('')) +
       `<div class="card"><h3>Money per second</h3>` + [['Collection', e => e.gross], ['Recycling sales', e => e.recycle, () => S.unlocks.recycling], ['Tipping fees from others', e => e.tipping, () => S.unlocks.landfill], ['Dump fees', e => -e.dump], ['Fuel', e => -e.fuel], ['Wages', e => -e.wages]].map(([l, f, on]) => `<div class="split" ${on ? B(() => ({ show: !!on() })) : ''}><span>${l}</span><b class="num" ${B(() => money(f(T.economy(S)), 2))}></b></div>`).join('') +
       `<div class="split"><span>Recycling price</span><b class="num" ${B(() => S.unlocks.recycling ? S.price.toFixed(2) + '×' : 'no program yet')}></b></div></div>`;
@@ -245,6 +287,11 @@ const special = {
   rushId(b) { const i = S.down.findIndex(d => d.id === b.dataset.x); return T.act.rush(S, i); },
   sellAsk() { const st = T.starsFor(S); modal(`<h2>Sell ${esc(S.name || 'the company')}?</h2><p>You get <b>${st} Legacy star${st > 1 ? 's' : ''}</b> and start over with one pickup in Maple Hollow. Trophies and Legacy perks stay.</p><div class="btns"><button class="btn ghost" data-m="no">Keep running it</button><button class="btn" data-m="yes">Sell</button></div>`, k => { if (k === 'yes') { const name = S.name, theme = S.theme; S = T.act.sell(S); S.name = name; S.theme = theme; persist(); show('route'); } }); },
   legacy(b) { return T.act.legacy(S, b.dataset.x); },
+  moveAsk(b) {
+    const i = +b.dataset.x, R = T.REGIONS[i];
+    modal(`<h2>Move to ${esc(R.name)}?</h2><p>You leave your trucks, towns and customers behind and start over in ${esc(R.towns[0])} with one pickup and <b>${money(S.cash * T.BAN.keep)}</b> (a tenth of your cash).</p><p>You keep your office software, trophies, Legacy and this run's earnings. ${R.ban ? 'Reputation here starts at ' + R.startRep + ', climbs slower and drops faster. Fall below ' + T.BAN.rep + ' for too long and they run you out until you sell the company.' : ''}</p><div class="btns"><button class="btn ghost" data-m="no">Stay</button><button class="btn" data-m="yes">Move</button></div>`, k => { if (k === 'yes') { const e = T.act.move(S, i); if (e) note(e); persist(); show('route'); } });
+    return '';
+  },
   boostAsk() {
     if (S.boost > T.BASE.boostMax - T.BASE.boostSecs) return T.act.boost(S);
     M.reward().then(ok => { if (!ok) { note('The ad did not finish, so no boost this time.'); return; } const e = T.act.boost(S); note(e || 'Double income for 30 more minutes.'); persist(); refresh(); });
@@ -282,6 +329,11 @@ function frame() {
   const now = Date.now(), gap = (now - lastFrame) / 1000; lastFrame = now;
   if (gap > 30) { S.lastSeen = now - gap * 1000; welcome(T.catchUp(S, now)); }
   else if (gap > 0) T.tick(S, gap);
+  if ((S.region || 0) !== shownRegion) { // run out of a region while playing
+    const from = T.REGIONS[shownRegion]; shownRegion = S.region || 0;
+    if (S.banned && S.banned[from.id]) modal(`<h2>Run out of ${esc(from.name)}</h2><p>Too many missed pickups and angry calls. The county boards pulled your permits, and you cannot work in ${esc(from.name)} again until you sell the company.</p><p>You are starting over in ${esc(T.region(S).name)} with a tenth of your cash. Keep enough trucks running next time.</p><div class="btns"><button class="btn" data-m="ok">Start over</button></div>`, () => {});
+    persist(); show(tab);
+  }
   const got = T.checkAch(S); got.forEach(toast); newTrophies += got.length;
   const dot = $('#dot-trophies'); if (dot) dot.classList.toggle('on', newTrophies > 0 && tab !== 'trophies');
   const fd = $('#dot-route'); if (fd) fd.classList.toggle('on', tab !== 'route' && (!!S.offer || S.down.length > 0));

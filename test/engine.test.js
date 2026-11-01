@@ -29,7 +29,7 @@ t('unlocks need their prerequisite', () => {
   assert.equal(TT.economy(s).dump, 0);
 });
 t('towns keep going past the named map', () => {
-  const a = TT.townDef(6), b = TT.townDef(7); assert(b.homes > a.homes && b.cost > a.cost); assert.match(a.name, /Region/);
+  const a = TT.townDef(6), b = TT.townDef(7); assert(b.homes > a.homes && b.cost > a.cost); assert.match(a.name, /County/);
 });
 t('paused sign-ups stop growth', () => {
   const s = TT.fresh(); TT.act.pause(s, 'res'); for (let i = 0; i < 60; i++) TT.tick(s, 1, true); assert.equal(s.cust.res, 0);
@@ -75,4 +75,26 @@ t('away earnings double once', () => {
   assert.equal(TT.act.doubleAway(s, r), ''); assert(Math.abs(s.cash - (c + r.cash)) < 1e-6); assert.notEqual(TT.act.doubleAway(s, r), '');
 });
 t('a banked boost survives selling the company', () => { const s = TT.fresh(); s.earned = 2e6; TT.act.boost(s); assert.equal(TT.act.sell(s).boost, 1800); });
+t('moving region starts over with a tenth of the cash and keeps earnings', () => {
+  const s = TT.fresh(); s.cash = 1e6; s.earned = 2e7; s.trucks.rear = 3; s.software.planner = 2; s.towns = 3;
+  assert.match(TT.act.move(s, 2), /Earn/);
+  assert.equal(TT.act.move(s, 1), ''); assert.equal(s.region, 1); assert.equal(s.cash, 1e5); assert.equal(s.earned, 2e7);
+  assert.equal(s.trucks.rear, 0); assert.equal(s.towns, 1); assert.equal(s.software.planner, 2); assert.equal(s.rep, 50);
+  assert.equal(TT.town(s, 0).name, 'Loon Lake'); assert(TT.market(s).res > 400);
+});
+t('a bad reputation in a hard region gets you run out, until you sell', () => {
+  const s = TT.fresh(); s.earned = 6e8; s.cash = 1e5; TT.act.move(s, 2); s.rep = 5;
+  for (let i = 0; i < 130 && s.region === 2; i++) { s.rep = 5; TT.tick(s, 1); }
+  assert.equal(s.region, 1); assert(s.banned.plains); assert.match(TT.act.move(s, 2), /ran you out/);
+  assert(TT.checkAch(s).some(a => a.id === 'banned'));
+  const n2 = TT.act.sell(s); assert.equal(n2.region, 0); assert(!n2.banned.plains);
+});
+t('the home region never bans, and time away never bans', () => {
+  const s = TT.fresh(); s.rep = 1; for (let i = 0; i < 300; i++) { s.rep = 1; TT.tick(s, 1); } assert.equal(s.region, 0);
+  const h = TT.fresh(); h.earned = 2e7; TT.act.move(h, 1); h.rep = 1; h.lastSeen = Date.now() - 3600e3; TT.catchUp(h); assert.equal(h.region, 1);
+});
+t('reputation climbs slower and falls faster in later regions', () => {
+  const a = TT.fresh(), b = TT.fresh(); b.earned = 1e13; TT.act.move(b, 5);
+  a.rep = b.rep = 50; TT.tick(a, 1); TT.tick(b, 1); assert(a.rep - 50 > b.rep - 50);
+});
 console.log(n + ' checks passed');
