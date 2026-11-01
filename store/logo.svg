@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1D3A6B"/><stop offset="1" stop-color="#0E1C38"/></linearGradient>
+    <radialGradient id="glowb" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#F2C14E" stop-opacity=".45"/><stop offset="1" stop-color="#F2C14E" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bgb)"/>
+  <g transform="translate(256 262) scale(.9) translate(-283 -249)">
+<circle cx="318" cy="150" r="150" fill="url(#glowb)"/>
+  <!-- sparkles -->
+  <g stroke="#F2D88A" stroke-width="9" stroke-linecap="round"><path d="M256 96l-20-18"/><path d="M322 66l2-28"/><path d="M392 100l22-16"/><path d="M402 168l28 4"/></g>
+  <!-- coin -->
+  <g transform="rotate(-12 322 150)">
+    <circle cx="322" cy="150" r="58" fill="#E3B341"/>
+    <circle cx="322" cy="150" r="58" fill="none" stroke="#B88A22" stroke-width="6"/>
+    <circle cx="322" cy="150" r="42" fill="none" stroke="#F5D98C" stroke-width="5"/>
+    <text x="322" y="173" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="66" fill="#7A5A12">$</text>
+  </g>
+  <!-- lid, hinged at the back left -->
+  <g transform="rotate(-68 150 238)">
+    <rect x="146" y="222" width="226" height="30" rx="10" fill="#3F8F6A"/>
+    <rect x="300" y="206" width="52" height="20" rx="8" fill="#2A6148"/>
+  </g>
+  <!-- cart body -->
+  <path d="M150 248h212l-22 190H172z" fill="#2F6B4F"/>
+  <path d="M156 248h200l-3 26H159z" fill="#24573F"/>
+  <g fill="#43976F"><rect x="196" y="292" width="18" height="120" rx="9"/><rect x="247" y="292" width="18" height="120" rx="9"/><rect x="298" y="292" width="18" height="120" rx="9"/></g>
+  <rect x="136" y="236" width="30" height="26" rx="8" fill="#24573F"/>
+  <!-- wheels -->
+  <g fill="#0A1222"><circle cx="190" cy="442" r="30"/><circle cx="322" cy="442" r="30"/></g>
+  <g fill="#B8C2D6"><circle cx="190" cy="442" r="11"/><circle cx="322" cy="442" r="11"/></g>
+</g>
+</svg>
