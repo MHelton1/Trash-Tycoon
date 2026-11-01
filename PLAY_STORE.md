@@ -8,8 +8,8 @@ Everything in the app is already set up for Google Play's current rules:
 | New apps must target Android 16 (API 36) from August 31, 2026 | Targets API 36, compiles against API 36, runs on Android 7.0 and newer |
 | Uploads must be an Android App Bundle (.aab), signed | The build workflow makes a signed `.aab` with your upload key |
 | Every update needs a higher version code | The workflow uses the run number, so it goes up on every build |
-| Privacy policy for every app | https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html, also inside the game (Company > Settings > Privacy) |
-| Data safety must match what the app does | The app collects nothing, asks for no permissions (not even internet) and contains no ads, analytics or third-party code |
+| Privacy policy for every app | https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html, also inside the game (Company > Settings > Privacy). It already covers the 1.1 ads and purchases |
+| Data safety must match what the app does | Version 1.0.0 collects nothing and has no third-party code. Version 1.1 adds AdMob and Play Billing; its answers are in the version 1.1 section below |
 | Edge-to-edge screens on Android 15 and 16 | The header and tab bar stay clear of the status and navigation bars |
 | No 32-bit-only native code, 16 KB page support | The app has no native code, so neither applies |
 | Original name, icon and art | All drawn for this game; no other app found using the name Idle Roundsman |
@@ -74,3 +74,46 @@ Google's review of a new app usually takes a few days, sometimes longer.
 ## Updating the game later
 
 Change the code, run the workflow with a higher version (1.0.1, 1.1.0 …), and upload the new `.aab` to the same track. The version code rises on its own.
+
+## Version 1.1: optional reward ads and the Supporter Pack
+
+What players get:
+- **Double income**: a button on the Route tab plays one rewarded ad for 30 minutes of 2x income. Players can bank up to 2 hours, so nobody can binge ads.
+- **Double what the crews made while away**: one optional ad on the Welcome back screen.
+- **Supporter Pack** (`supporter_pack`, one-time): every reward with no ad, gold truck cabs, a thank-you on the Company tab. It belongs to the player's Google account and is restored automatically (and with a Restore button) after a reinstall or on a new phone.
+- **Built on Roundsman**: a card on the Company tab that opens https://roundsman.app.
+
+No ad ever plays unless the player taps for it. There are no banners and no interstitials.
+
+### Set up once
+
+1. **AdMob**: sign in at admob.google.com with your Play Console Google account. Apps > Add app > Android > "Is the app listed on a supported app store?" No for now (link it after it is live) > name Idle Roundsman. Then Ad units > Add > **Rewarded**, name it "Double income". Copy the **App ID** (has a `~`) and the **ad unit ID** (has a `/`) and send both to Claude. They go in `web/money.js` (ad unit, and `testing: false`) and `apps/mobile/android/app/src/main/res/values/strings.xml` (app ID). Add payment and tax details under Payments.
+2. **Consent message**: in AdMob open Privacy & messaging > European regulations > Create message, pick the app, and publish it. That is the consent form the game shows in Europe and the UK.
+3. **app-ads.txt**: AdMob gives you one line under Apps > View all apps > app-ads.txt. It must sit at the root of the website on your Play listing. The easiest is https://roundsman.app/app-ads.txt, with the listing website set to https://roundsman.app.
+4. **Play payments profile**: Play Console > Settings > Payments profile, then finish the merchant (bank and tax) setup.
+5. **The product**: upload a 1.1 build to the closed test first (Play only lets you create products once the app has the billing permission). Then Monetize with Play > Products > One-time products > Create: product ID **supporter_pack**, name "Supporter Pack", description "Every reward with no ads, gold trucks, and you help fund Roundsman.", price around $3.99. Activate it.
+
+Builds made before step 1 use Google's test IDs: test ads work but earn nothing, and the workflow prints a warning.
+
+### Play Console answers that change for 1.1
+
+| Section | New answer |
+|---|---|
+| Ads | **Yes, my app contains ads** |
+| Content rating | Start a new questionnaire: same answers as before, except "Does the app allow users to purchase digital goods?" **Yes**. The rating stays Everyone |
+| Advertising ID | **Yes**. Uses: **Advertising or marketing** |
+| Target audience | Unchanged: 13 and over only. Keep under-13 ages off, because ads for children fall under the stricter Families rules |
+| Data safety | See below |
+
+**Data safety for 1.1** (the AdMob SDK collects these; check against Google's own page, developers.google.com/admob/android/privacy/play-data-disclosure, in case it has changed):
+- Does your app collect or share any of the required user data types? **Yes**
+- Is all of the user data collected by your app encrypted in transit? **Yes**
+- Do you provide a way for users to request that their data is deleted? **No** (the game holds none; players control the advertising ID in Android settings)
+- Data types, each **Collected and Shared**, not optional, for **Advertising or marketing, Analytics, Fraud prevention, security and compliance**:
+  - Location > **Approximate location** (from the IP address)
+  - App activity > **App interactions**
+  - App info and performance > **Crash logs** and **Diagnostics**
+  - Device or other IDs > **Device or other IDs**
+- Purchases go through Google Play Billing; the game itself stores no purchase history, so nothing else is declared.
+
+Then update the full description from `store/listing.md` (it now has the No forced ads paragraph).

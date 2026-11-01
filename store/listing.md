@@ -36,7 +36,10 @@ SELL AND START AGAIN
 Once your company has earned a million dollars, sell it for Legacy stars and start over with one pickup, stronger every time. The towns never run out.
 
 PLAYS ANYWHERE
-Your crews keep running routes while you are away. The game works with no signal, asks for no permissions and has no ads, accounts or tracking.
+Your crews keep running routes while you are away. The game works with no signal and needs no account.
+
+NO FORCED ADS
+An ad only plays when you tap to earn a reward, like double income for 30 minutes or doubling what your crews made while you were away. Or get the Supporter Pack once and every reward is instant, with no ads, for good.
 
 Built on the Roundsman route software for residential waste collection.
 
@@ -49,7 +52,7 @@ Built on the Roundsman route software for residential waste collection.
 ## Contact details
 
 - Email: required by Google Play. Use an address you are happy to have shown publicly on the listing.
-- Website: https://mhelton1.github.io/Trash-Tycoon/
+- Website: https://roundsman.app (if you host app-ads.txt there for AdMob; otherwise https://mhelton1.github.io/Trash-Tycoon/)
 - Privacy policy: https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html
 
 ## Graphics (in this folder)

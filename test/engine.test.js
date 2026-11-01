@@ -64,4 +64,15 @@ t('a long greedy game runs without NaN', () => {
   for (let i = 0; i < 3600; i++) TT.tick(s, 1); const e = TT.economy(s);
   assert(isFinite(s.cash) && isFinite(e.net) && isFinite(s.rep)); assert(s.towns === 13);
 });
+t('a boost doubles income, runs out, and caps at two hours', () => {
+  const s = TT.fresh(); s.cust.res = 40; const base = TT.economy(s).income;
+  assert.equal(TT.act.boost(s), ''); assert.equal(s.boost, 1800); assert(Math.abs(TT.economy(s).income - 2 * base) < 1e-9);
+  for (let i = 0; i < 3; i++) TT.act.boost(s); assert.equal(s.boost, 7200); assert.match(TT.act.boost(s), /banked/);
+  TT.tick(s, 7200); assert.equal(s.boost, 0); assert(Math.abs(TT.economy(s).income - base) < 1e-9);
+});
+t('away earnings double once', () => {
+  const s = TT.fresh(); s.cust.res = 40; s.lastSeen = Date.now() - 3600e3; const r = TT.catchUp(s), c = s.cash;
+  assert.equal(TT.act.doubleAway(s, r), ''); assert(Math.abs(s.cash - (c + r.cash)) < 1e-6); assert.notEqual(TT.act.doubleAway(s, r), '');
+});
+t('a banked boost survives selling the company', () => { const s = TT.fresh(); s.earned = 2e6; TT.act.boost(s); assert.equal(TT.act.sell(s).boost, 1800); });
 console.log(n + ' checks passed');

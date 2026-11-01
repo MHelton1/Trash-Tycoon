@@ -4,7 +4,8 @@
 'use strict';
 const T = window.TT, $ = s => document.querySelector(s);
 const KEY = 'trash-tycoon-save-v1'; // kept from the game's first name so existing saves carry over
-const money = T.fmtMoney, num = T.fmt;
+const money = T.fmtMoney, num = T.fmt, M = window.Money;
+const clock = sec => { sec = Math.ceil(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
 let S, tab = 'route', binds = {}, sections = {}, bid = 0, lastFrame = Date.now(), newTrophies = 0;
 
 /* ---------- icons ---------- */
@@ -73,7 +74,8 @@ function header() {
     <div class="cash" ${B(() => money(S.cash))}></div>
     <div class="sub"><span ${B(() => { const e = T.economy(S); return { h: `<b class="${e.net < 0 ? 'neg' : ''}">${money(e.net, 1)}</b>/s`, }; })}></span>
     <span ${B(() => ({ h: `<b>${num(T.economy(S).totalCust)}</b> customer${Math.floor(T.economy(S).totalCust) === 1 ? '' : 's'}` }))}></span>
-    <span ${B(() => ({ h: `Reputation <b>${Math.round(S.rep)}</b>` }))}></span></div>`;
+    <span ${B(() => ({ h: `Reputation <b>${Math.round(S.rep)}</b>` }))}></span>
+    <span ${B(() => ({ show: S.boost > 0, h: `<b>2×</b> for ${clock(S.boost)}` }))}></span></div>`;
 }
 const TABS = [['route', 'Route'], ['fleet', 'Fleet'], ['grow', 'Grow'], ['office', 'Office'], ['trophies', 'Trophies'], ['company', 'Company']];
 function tabsBar() {
@@ -95,11 +97,11 @@ function truckSvg(k) {
   return `<rect x="0" y="${22 - h}" width="44" height="${h}" rx="3" fill="${c}"/><rect x="44" y="2" width="16" height="20" rx="3" fill="var(--cab)"/><rect x="48" y="5" width="9" height="7" rx="1" fill="var(--sky)"/>${k === 'front' ? '<rect x="58" y="0" width="3" height="10" fill="#555"/>' : ''}${k === 'side' ? '<rect x="18" y="0" width="4" height="8" fill="#555"/>' : ''}<circle cx="10" cy="23" r="4.5" fill="#222"/><circle cx="34" cy="23" r="4.5" fill="#222"/><circle cx="52" cy="23" r="4.5" fill="#222"/>`;
 }
 function scene() {
-  const w = T.working(S), list = []; ['side', 'rear', 'front', 'roll', 'pickup'].forEach(k => { for (let i = 0; i < w[k] && list.length < 5; i++) list.push(k); });
+  const gold = M.supporter, w = T.working(S), list = []; ['side', 'rear', 'front', 'roll', 'pickup'].forEach(k => { for (let i = 0; i < w[k] && list.length < 5; i++) list.push(k); });
   let houses = ''; for (let i = 0; i < 7; i++) { const x = 8 + i * 52, h = 26 + (i * 7 % 12); houses += `<rect x="${x}" y="${70 - h}" width="34" height="${h}" fill="var(--house)" opacity=".85"/><path d="M${x - 3} ${70 - h}l20-14 20 14z" fill="var(--house)"/><rect x="${x + 13}" y="${58}" width="8" height="12" fill="var(--sky)" opacity=".6"/><rect x="${x + 38}" y="76" width="7" height="10" rx="1" fill="${i % 3 === 0 ? 'var(--svc)' : 'var(--good)'}"/>`; }
   const dur = Math.max(7, 16 - list.length * 1.5);
   const trucks = list.map((k, i) => `<g class="truck" style="--dur:${dur}s;animation-delay:-${(i * dur / Math.max(1, list.length)).toFixed(2)}s"><g transform="translate(0 ${i % 2 ? 98 : 84})">${truckSvg(k)}</g></g>`).join('');
-  return `<div class="scene" aria-hidden="true"><svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice"><rect y="70" width="360" height="16" fill="var(--grass)"/>${houses}<rect y="86" width="360" height="46" fill="var(--road)"/><path d="M0 110h360" stroke="var(--panel)" stroke-width="2" stroke-dasharray="14 12" opacity=".7"/>${trucks}</svg><span class="lbl">${esc(T.townDef(S.towns - 1).name)}${S.towns > 1 ? ' and ' + (S.towns - 1) + ' more' : ''}</span></div>`;
+  return `<div class="scene" aria-hidden="true"${gold ? ' style="--cab:#C9A13B"' : ''}><svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice"><rect y="70" width="360" height="16" fill="var(--grass)"/>${houses}<rect y="86" width="360" height="46" fill="var(--road)"/><path d="M0 110h360" stroke="var(--panel)" stroke-width="2" stroke-dasharray="14 12" opacity=".7"/>${trucks}</svg><span class="lbl">${esc(T.townDef(S.towns - 1).name)}${S.towns > 1 ? ' and ' + (S.towns - 1) + ' more' : ''}</span></div>`;
 }
 
 /* ---------- tips for a new player ---------- */
@@ -125,9 +127,13 @@ const svcRow = k => {
 
 const VIEWS = {
   route() {
-    return SEC(() => JSON.stringify(T.working(S)) + S.towns, scene) +
+    return SEC(() => JSON.stringify(T.working(S)) + S.towns + M.supporter, scene) +
       `<div class="actions"><button class="tap" data-a="tap" id="tapbtn">Ride along<small ${B(() => '+' + money(T.tapValue(S), 2) + ' a tap')}></small></button>
        <button class="tap alt" data-a="flyer">Hand out flyers<small>sign up neighbors</small></button></div>` +
+      SEC(() => M.offered, () => !M.offered ? '' : `<div class="card"><div class="item"><div class="ic">${ic('bolt')}</div><div class="grow"><h3>Double income</h3>
+        <div class="about" ${B(() => S.boost > 0 ? '2× income for ' + clock(S.boost) + ' more. Bank up to 2 hours.' : 'Twice the money from every route for 30 minutes.')}></div></div>
+        <button class="btn" data-a="boostAsk" ${B(() => { const full = S.boost > T.BASE.boostMax - T.BASE.boostSecs; if (full) return { h: 'Full<small>2 h banked</small>', dis: true };
+          if (M.supporter) return { h: 'Add 30 min<small>Supporter</small>', dis: false }; return M.canReward ? { h: 'Watch ad<small>+30 min</small>', dis: false } : { h: 'Ad loading', dis: true }; })}></button></div></div>`) +
       `<div class="card warn" ${B(() => { const t = tip(); return { show: !!t, t }; })}></div>` +
       SEC(() => S.offer ? 'o' + S.offer.title : '', () => !S.offer ? '' : `<div class="card offer"><div class="small muted">Contract offer</div><h3>${esc(S.offer.title)}</h3>
         <div class="meta">${num(S.offer.qty)} ${T.SERVICES[S.offer.svc].unit} at once, plus a ${money(S.offer.bonus)} signing bonus.</div>
@@ -188,12 +194,19 @@ const VIEWS = {
         <div style="margin-top:8px"><button class="btn" data-a="sellAsk" ${B(() => ({ dis: T.starsFor(S) < 1 }))}>Sell the company</button></div></div>
       <h2>Legacy perks</h2>` + Object.keys(T.LEGACY).map(k => { const D = T.LEGACY[k]; return `<div class="card"><div class="item"><div class="ic">${ic('star')}</div><div class="grow"><h3>${esc(D.name)} <span class="pill num" ${B(() => T.lvl(L.perks, k) + ' / ' + D.max)}></span></h3><div class="about">${esc(D.about)}</div></div>
         <button class="btn" data-a="legacy" data-x="${k}" ${B(() => { if (T.lvl(L.perks, k) >= D.max) return { h: 'Done', dis: true, cls: 'btn done' }; const c = T.price.legacy(S, k); return { h: 'Buy<small>' + c + ' ★</small>', dis: L.stars < c, cls: 'btn' }; })}></button></div></div>`; }).join('') +
-      `<h2>Settings</h2><div class="card"><div class="split"><span>Company name</span><button class="btn ghost" data-a="rename">Rename</button></div>
+      `<h2>Support the game</h2>` + SEC(() => [M.supporter, M.shopOn, M.price].join(), () => !(M.shopOn || M.supporter) ? '' : M.supporter
+        ? `<div class="card"><div class="item"><div class="ic" style="color:var(--gold)">${ic('star')}</div><div class="grow"><h3>Supporter Pack <span class="pill good">owned</span></h3><div class="about">Thank you. Every reward is instant with no ads, your trucks wear gold, and you are helping fund Roundsman.</div></div></div></div>`
+        : `<div class="card"><div class="item"><div class="ic" style="color:var(--gold)">${ic('star')}</div><div class="grow"><h3>Supporter Pack</h3><div class="about">One purchase, yours for good on your Google account: every reward with no ads, gold trucks on your street, and you help fund the Roundsman route software.</div></div>
+          <button class="btn" data-a="buySupporter">Buy${M.price ? '<small>' + esc(M.price) + '</small>' : ''}</button></div>
+          <div class="split" style="margin-top:8px"><span class="small muted">Bought it before, or on another phone?</span><button class="btn ghost" data-a="restoreSupporter">Restore</button></div></div>`) +
+      `<div class="card"><div class="item"><div class="ic">${ic('route')}</div><div class="grow"><h3>Built on Roundsman</h3><div class="about">Roundsman is real route software for residential waste haulers. Run a hauling company? Take a look.</div></div><button class="btn ghost" data-a="roundsman">Visit</button></div></div>
+      <h2>Settings</h2><div class="card"><div class="split"><span>Company name</span><button class="btn ghost" data-a="rename">Rename</button></div>
         <div class="split"><span>Theme</span><span class="seg">${['auto', 'light', 'dark'].map(t => `<button data-a="theme" data-x="${t}" ${B(() => ({ press: (S.theme || 'auto') === t }))}>${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</span></div>
         <div class="split"><span>Save code (move to another phone)</span><span><button class="btn ghost" data-a="exportSave">Copy</button> <button class="btn ghost" data-a="importSave">Load</button></span></div>
         <div class="split"><span>Away time</span><b ${B(() => 'up to ' + T.mults(S).awayH + ' hours')}></b></div>
         <div class="split"><span>Start over completely</span><button class="btn ghost" data-a="wipeAsk">Erase</button></div>
-        <div class="split"><span>Privacy</span><button class="btn ghost" data-a="privacy">Read</button></div></div>
+        <div class="split"><span>Privacy</span><button class="btn ghost" data-a="privacy">Read</button></div>
+        ${SEC(() => M.privacyNeeded, () => M.privacyNeeded ? '<div class="split"><span>Ad privacy choices</span><button class="btn ghost" data-a="adPrivacy">Change</button></div>' : '')}</div>
       <p class="muted small">Idle Roundsman ${T.VERSION}, built on the Roundsman world. Saves on this device every few seconds.</p>`;
   }
 };
@@ -217,7 +230,11 @@ function floatText(x, y, txt) { const f = document.createElement('div'); f.class
 function welcome(r) {
   if (!r || r.seconds < 120) return;
   const h = Math.floor(r.seconds / 3600), m = Math.round(r.seconds % 3600 / 60);
-  modal(`<h2>Welcome back</h2><p>Your crews ran routes for ${h ? h + ' h ' : ''}${m} min while you were away.</p><div class="split"><span>Cash made</span><b>${money(r.cash)}</b></div><div class="split"><span>New customers</span><b>${num(r.cust)}</b></div>${r.capped ? `<p class="small muted">Routes stop after ${T.mults(S).awayH} hours away. The Offline route book in the Office adds more.</p>` : ''}<div class="btns"><button class="btn" data-m="ok">Back to work</button></div>`, () => {});
+  modal(`<h2>Welcome back</h2><p>Your crews ran routes for ${h ? h + ' h ' : ''}${m} min while you were away.</p><div class="split"><span>Cash made</span><b>${money(r.cash)}</b></div><div class="split"><span>New customers</span><b>${num(r.cust)}</b></div>${r.capped ? `<p class="small muted">Routes stop after ${T.mults(S).awayH} hours away. The Offline route book in the Office adds more.</p>` : ''}<div class="btns">${M.offered && r.cash > 0 ? `<button class="btn ghost" data-m="double">${M.supporter ? 'Double it' : 'Watch ad to double it'}</button>` : ''}<button class="btn" data-m="ok">Back to work</button></div>`, k => {
+    if (k !== 'double') return;
+    if (!M.canReward) { note('No ad is ready yet. Try again in a moment.'); return false; }
+    M.reward().then(ok => { if (ok && !T.act.doubleAway(S, r)) { persist(); note('Doubled: +' + money(r.cash) + '.'); } else if (!ok) note('The ad did not finish, so nothing was added.'); });
+  });
 }
 
 /* ---------- actions ---------- */
@@ -228,11 +245,20 @@ const special = {
   rushId(b) { const i = S.down.findIndex(d => d.id === b.dataset.x); return T.act.rush(S, i); },
   sellAsk() { const st = T.starsFor(S); modal(`<h2>Sell ${esc(S.name || 'the company')}?</h2><p>You get <b>${st} Legacy star${st > 1 ? 's' : ''}</b> and start over with one pickup in Maple Hollow. Trophies and Legacy perks stay.</p><div class="btns"><button class="btn ghost" data-m="no">Keep running it</button><button class="btn" data-m="yes">Sell</button></div>`, k => { if (k === 'yes') { const name = S.name, theme = S.theme; S = T.act.sell(S); S.name = name; S.theme = theme; persist(); show('route'); } }); },
   legacy(b) { return T.act.legacy(S, b.dataset.x); },
+  boostAsk() {
+    if (S.boost > T.BASE.boostMax - T.BASE.boostSecs) return T.act.boost(S);
+    M.reward().then(ok => { if (!ok) { note('The ad did not finish, so no boost this time.'); return; } const e = T.act.boost(S); note(e || 'Double income for 30 more minutes.'); persist(); refresh(); });
+    return '';
+  },
+  buySupporter() { M.buy().then(r => { note(r === 'owned' ? 'Thank you! The Supporter Pack is yours.' : 'Google Play is finishing your purchase. It will appear here when it is done.'); refresh(); }).catch(() => {}); return ''; },
+  restoreSupporter() { M.restore().then(own => note(own ? 'Supporter Pack restored.' : 'No Supporter Pack found on this Google account.')).catch(() => note('Could not reach Google Play. Try again with a signal.')); return ''; },
+  roundsman() { M.openRoundsman(); return ''; },
+  adPrivacy() { M.privacyOptions().catch(() => {}); return ''; },
   rename() { askName(); },
   theme(b) { S.theme = b.dataset.x; setTheme(S.theme); persist(); },
   exportSave() { const c = T.exportCode(S); modal(`<h2>Save code</h2><p class="small muted">Copy this and load it on another phone.</p><textarea readonly>${esc(c)}</textarea><div class="btns"><button class="btn" data-m="copy">Copy</button><button class="btn ghost" data-m="ok">Close</button></div>`, (k, m) => { if (k === 'copy') { const ta = m.querySelector('textarea'); ta.select(); try { navigator.clipboard.writeText(c); } catch (e) { document.execCommand('copy'); } note('Copied.'); } }); },
   importSave() { modal(`<h2>Load a save code</h2><p class="small muted">This replaces the game on this phone.</p><textarea></textarea><div class="btns"><button class="btn ghost" data-m="no">Cancel</button><button class="btn" data-m="load">Load</button></div>`, (k, m) => { if (k !== 'load') return; try { S = T.importCode(m.querySelector('textarea').value); setTheme(S.theme || 'auto'); persist(); show('route'); note('Save loaded.'); } catch (e) { note('That code did not work.'); return false; } }); },
-  privacy() { modal(`<h2>Privacy</h2><p>Idle Roundsman does not collect, store or share any personal information. There are no accounts, ads, analytics or trackers, and the game does not go online.</p><p>Your company is saved only on this device. A save code is created only when you press Copy, and goes only where you paste it. Uninstalling the game or pressing Erase deletes everything.</p><p class="small muted">Full policy: <a href="${T.PRIVACY_URL}" target="_blank" rel="noopener">${esc(T.PRIVACY_URL.replace('https://', ''))}</a></p><div class="btns"><button class="btn" data-m="ok">Close</button></div>`, () => {}); },
+  privacy() { modal(`<h2>Privacy</h2>${M.native ? `<p>Idle Roundsman has no accounts and never asks for your name, email or location. Your company is saved only on this phone.</p><p>Ads play only when you tap a reward button. Those ads come from Google AdMob, which uses your phone's advertising ID and basic device information to show and count ads. Players in Europe and the UK are asked first. Purchases go through Google Play, and we never see your payment details.</p><p>` : `<p>Idle Roundsman does not collect, store or share any personal information. There are no accounts, ads, analytics or trackers.</p><p>Your company is saved only on this device. `} A save code is created only when you press Copy, and goes only where you paste it. Uninstalling the game or pressing Erase deletes everything.</p><p class="small muted">Full policy: <a href="${T.PRIVACY_URL}" target="_blank" rel="noopener">${esc(T.PRIVACY_URL.replace('https://', ''))}</a></p><div class="btns"><button class="btn" data-m="ok">Close</button></div>`, () => {}); },
   wipeAsk() { modal(`<h2>Erase everything?</h2><p>This deletes the company, your trophies and Legacy on this phone. It cannot be undone.</p><div class="btns"><button class="btn ghost" data-m="no">Cancel</button><button class="btn" style="background:var(--bad);border-color:var(--bad)" data-m="yes">Erase</button></div>`, k => { if (k === 'yes') { S = T.fresh(); persist(); show('route'); askName(); } }); }
 };
 function onClick(ev) {
@@ -270,6 +296,7 @@ function start() {
   try { const t = localStorage.getItem(KEY + '-tab'); if (t && VIEWS[t]) tab = t; } catch (e) { /* private mode */ }
   tabsBar(); show(tab);
   document.addEventListener('click', onClick);
+  M.onChange(refresh);
   setInterval(frame, 250); setInterval(persist, 5000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
   window.addEventListener('pagehide', persist);

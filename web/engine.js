@@ -78,7 +78,8 @@ const BASE = {
   growth: 0.006,            // share of the open market signed per second at reputation 50
   breakdown: 1 / 900,       // per working truck per second
   repair: 150,              // seconds a truck is down with no mechanic
-  awayHours: 4
+  awayHours: 4,
+  boostSecs: 1800, boostMax: 7200  // optional 2x income: 30 minutes a reward, at most 2 hours banked
 };
 
 const TAU = { day: 30 }; // one in-game day is 30 seconds
@@ -97,6 +98,7 @@ function fresh(legacy) {
     log: [],
     stats: { taps: 0, flyers: 0, roadcalls: 0, rushed: 0, contracts: 0, bestNet: 0, perfectDays: 0, missedDays: 0, away: 0, maxPrice: 1 },
     legacy, seed: (Math.random() * 2 ** 31) | 0,
+    boost: 0,                 // seconds of 2x income left
     lastSeen: Date.now()
   };
   s.cash = 5000 * lvl(legacy.perks, 'start');
@@ -125,7 +127,7 @@ function mults(s) {
   const sw = s.software, L = s.legacy.perks;
   return {
     cap: 1 + 0.12 * lvl(sw, 'planner'),
-    rev: (1 + 0.10 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars),
+    rev: (1 + 0.10 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars) * (s.boost > 0 ? 2 : 1),
     growth: (1 + 0.25 * lvl(sw, 'portal')) * (1 + 0.3 * lvl(L, 'grow')) * (1 + 0.35 * s.marketing),
     brk: Math.pow(0.85, lvl(sw, 'reports')) / (1 + 0.25 * s.mechanics),
     repair: Math.pow(0.85, lvl(sw, 'dispatch')),
@@ -242,12 +244,21 @@ const act = {
     s.stats.contracts++; note(s, 'Signed: ' + o.title + '. +' + fmtMoney(o.bonus) + '.', 'good'); s.offer = null; return '';
   },
   declineOffer(s) { s.offer = null; return ''; },
+  /* Rewards the player chose to earn (an ad they asked to watch, or the Supporter Pack). */
+  boost(s) {
+    if (s.boost > BASE.boostMax - BASE.boostSecs) return 'You already have ' + Math.round(s.boost / 60) + ' minutes of double income banked.';
+    s.boost = (s.boost || 0) + BASE.boostSecs; s.stats.boosts = (s.stats.boosts || 0) + 1; return '';
+  },
+  doubleAway(s, r) {
+    if (!r || r.doubled || !(r.cash > 0)) return 'Nothing to double.';
+    r.doubled = true; s.cash += r.cash; s.earned += r.cash; return '';
+  },
   pause(s, k) { s.paused[k] = !s.paused[k]; return ''; },
   /* Sell the company: stars from what this run earned, then a fresh start with everything Legacy keeps. */
   sell(s) {
     const st = starsFor(s); if (st < 1) return 'Buyers want a company that has earned at least $1M.';
     const L = s.legacy; L.stars += st; L.earnedStars += st; L.sales++; L.best = Math.max(L.best || 0, s.earned);
-    const n = fresh(L); n.stats.away = 0; note(n, 'Sold the old company for ' + st + ' Legacy star' + (st > 1 ? 's' : '') + '. Back to one pickup.', 'good');
+    const n = fresh(L); n.stats.away = 0; n.boost = s.boost || 0; note(n, 'Sold the old company for ' + st + ' Legacy star' + (st > 1 ? 's' : '') + '. Back to one pickup.', 'good');
     return n;
   },
   legacy(s, k) {
@@ -283,6 +294,7 @@ function makeOffer(s) {
 /* Advance the world by dt seconds. quiet=true is used for time away: no breakdowns or offers, just routes. */
 function tick(s, dt, quiet) {
   const m = mults(s), mk = market(s);
+  if (s.boost > 0) s.boost = Math.max(0, s.boost - dt);
   // breakdowns and repairs
   if (!quiet) {
     const w = working(s);
@@ -409,7 +421,7 @@ function load(str) {
 const exportCode = s => (typeof btoa === 'function' ? btoa(unescape(encodeURIComponent(save(s)))) : Buffer.from(save(s)).toString('base64'));
 const importCode = c => load(typeof atob === 'function' ? decodeURIComponent(escape(atob(c.trim()))) : Buffer.from(c.trim(), 'base64').toString());
 
-const VERSION = '1.0.0', PRIVACY_URL = 'https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html';
+const VERSION = '1.1.0', PRIVACY_URL = 'https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html';
 const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, SOFTWARE, UNLOCKS, LEGACY, BASE, TAU, ACH, STREETS,
   fresh, tick, catchUp, economy, working, capacity, market, slots, truckCount, needDrivers, mults, tapValue, price, act, starsFor,
   checkAch, nextGoals, makeOffer, fmt, fmtMoney, save, load, exportCode, importCode, lvl };
