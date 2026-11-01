@@ -4,4 +4,6 @@
     <string name="title_activity_main">Idle Roundsman</string>
     <string name="package_name">app.roundsman.idle</string>
     <string name="custom_url_scheme">app.roundsman.idle</string>
+    <!-- Google's public test app ID. Replace it with the app ID from your AdMob account before a store release. -->
+    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
 </resources>

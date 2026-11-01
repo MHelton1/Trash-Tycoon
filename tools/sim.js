@@ -1,5 +1,5 @@
 /* Pacing bot: plays the game greedily and prints when it reaches each milestone.
-   Use: node tools/sim.js [hours] [taps-per-second]  */
+   Use: node tools/sim.js [hours] [taps-per-second]   (MOVE=1 moves on to each region as soon as it opens)  */
 'use strict';
 const TT = require('../web/engine.js');
 const hours = +process.argv[2] || 6, tps = process.argv[3] !== undefined ? +process.argv[3] : 2;
@@ -42,9 +42,10 @@ for (let t = 0; t < hours * 3600; t++) { t0 = t;
   if (t < 600 && t % 2 === 0) TT.act.flyer(s);
   TT.tick(s, 1);
   for (let k = 0; k < 4 && think(); k++);
+  if (process.env.MOVE) { const r = (s.region || 0) + 1; if (TT.REGIONS[r] && s.earned >= TT.REGIONS[r].need && !TT.act.move(s, r)) console.log(clock(t).padStart(8), 'moved to', TT.REGIONS[r].name, 'with', TT.fmtMoney(s.cash)); }
   TT.checkAch(s).forEach(a => mark(t, '★ ' + a.name + ' — ' + a.desc));
   Object.keys(s.unlocks).forEach(k => mark(t, 'unlock ' + k));
-  if (t % 1800 === 0) { const e = TT.economy(s); console.log(clock(t).padStart(8), `  [cash ${TT.fmtMoney(s.cash)} net ${TT.fmtMoney(e.net)}/s cust ${TT.fmt(e.totalCust)} missed ${TT.fmt(e.totalMissed)} rep ${s.rep.toFixed(0)} trucks ${TT.truckCount(s)} towns ${s.towns} stars ${TT.starsFor(s)}]`); }
+  if (t % 1800 === 0) { const e = TT.economy(s); console.log(clock(t).padStart(8), `  [cash ${TT.fmtMoney(s.cash)} net ${TT.fmtMoney(e.net)}/s cust ${TT.fmt(e.totalCust)} missed ${TT.fmt(e.totalMissed)} rep ${s.rep.toFixed(0)} region ${s.region} trucks ${TT.truckCount(s)} towns ${s.towns} stars ${TT.starsFor(s)}]`); }
 }
 console.log('achievements', Object.keys(s.legacy.achievements).length, '/', TT.ACH.length);
 if (process.env.DUMP) require('fs').writeFileSync(process.env.DUMP, TT.save(s));
