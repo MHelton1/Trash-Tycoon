@@ -4,6 +4,7 @@ Everything in the app is already set up for Google Play's current rules:
 
 | Rule | How this app meets it |
 |---|---|
+| Package name (fixed forever after the first upload) | `app.roundsman.idle` |
 | New apps must target Android 16 (API 36) from August 31, 2026 | Targets API 36, compiles against API 36, runs on Android 7.0 and newer |
 | Uploads must be an Android App Bundle (.aab), signed | The build workflow makes a signed `.aab` with your upload key |
 | Every update needs a higher version code | The workflow uses the run number, so it goes up on every build |
@@ -15,9 +16,9 @@ Everything in the app is already set up for Google Play's current rules:
 
 ## 1. Add your upload key to GitHub (once)
 
-Your upload key is in the project files, in `trash-tycoon-signing/`. It is **not** in the GitHub repo, because the repo is public.
+Your upload key is in the project files, in `idle-roundsman-signing/`. It is **not** in the GitHub repo, because the repo is public.
 
-1. Open `trash-tycoon-signing/github-secrets.txt`.
+1. Open `idle-roundsman-signing/github-secrets.txt`.
 2. On GitHub, open the repo > **Settings** > **Secrets and variables** > **Actions** > **New repository secret**.
 3. Add the four secrets from the file (`TT_KEY_ALIAS`, `TT_KEYSTORE_PASSWORD`, `TT_KEY_PASSWORD`, `TT_KEYSTORE_BASE64`), copying each name and value exactly.
 4. Save `upload-key.jks` and `github-secrets.txt` somewhere private, like a password manager. Every update must be signed with this key. If it is ever lost, Google can reset it (Play Console > Test and release > App integrity > Upload key reset).

@@ -2,6 +2,10 @@
 
 Copy these into Play Console > Grow users > Store presence > Main store listing.
 
+## Package name
+
+`app.roundsman.idle` (Play Console reads it from the uploaded file and it can never change.)
+
 ## App name (30 characters max)
 
 Idle Roundsman
