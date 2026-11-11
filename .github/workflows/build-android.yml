@@ -1,7 +1,7 @@
 # Builds the Android app.
 #   Every push: runs the game tests and builds a test APK you can install directly.
 #   Run workflow (Actions tab > Build Android app > Run workflow): also builds the signed .aab you upload to Google Play.
-# Signing uses four repository secrets: TT_KEYSTORE_BASE64, TT_KEYSTORE_PASSWORD, TT_KEY_ALIAS, TT_KEY_PASSWORD (see PLAY_STORE.md).
+# Signing uses four repository secrets: TT_KEYSTORE_BASE64, TT_KEYSTORE_PASSWORD, TT_KEY_ALIAS, TT_KEY_PASSWORD (see docs/guides/PLAY_STORE.md).
 name: Build Android app
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
             echo "$KS" | base64 -d > "$RUNNER_TEMP/upload-key.jks"
             echo "TT_KEYSTORE_FILE=$RUNNER_TEMP/upload-key.jks" >> "$GITHUB_ENV"
           else
-            echo "::warning::No signing secrets yet, so only the test APK is built. See PLAY_STORE.md, step 1."
+            echo "::warning::No signing secrets yet, so only the test APK is built. See docs/guides/PLAY_STORE.md, step 1."
           fi
       - name: Build
         working-directory: apps/mobile/android

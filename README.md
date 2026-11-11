@@ -2,6 +2,15 @@
 
 (First called Trash Tycoon; the repository keeps that name so the privacy policy link stays the same.)
 
+<!-- contents: made by tools/mdtoc.js, run it again after changing headings -->
+## Contents
+
+- [Play it](#play-it)
+- [How the game works](#how-the-game-works)
+- [Files](#files)
+
+<!-- /contents -->
+
 An idle game built on the Roundsman world: start with one pickup and a trailer in Maple Hollow and grow a waste company however you like. No outside packages; plain HTML, CSS and JavaScript, the same way Roundsman is built.
 
 ## Play it
@@ -9,7 +18,7 @@ An idle game built on the Roundsman world: start with one pickup and a trailer i
 - **In a browser:** open `dist/idle-roundsman.html` (one file, works offline), or serve the `web/` folder (`npx http-server web`) and open it.
 - **iPhone, quickest:** put the `web/` folder on any HTTPS address, open it in Safari, Share, Add to Home Screen. It works with no signal after the first load.
 - **Android app:** every push builds a test APK on GitHub (Actions > Build Android app > the run > Artifacts). Send `app-debug.apk` to a phone and open it (allow "install unknown apps"). Test APKs share one fixed test key, so a new one installs over the old one and keeps your save. A test APK and the Google Play version are signed differently, so switching between them needs an uninstall (copy your save code first).
-- **Google Play:** see [PLAY_STORE.md](PLAY_STORE.md) for the signed release build and every Play Console answer.
+- **Google Play:** see [docs/guides/PLAY_STORE.md](docs/guides/PLAY_STORE.md) for the signed release build and every Play Console answer.
 - **iPhone App Store build (needs a Mac, Xcode and the $99/year Apple developer account):**
   ```
   cd apps/mobile && npm ci
@@ -20,6 +29,8 @@ An idle game built on the Roundsman world: start with one pickup and a trailer i
   Then Signing > your team, Product > Archive, upload to TestFlight.
 
 Unlike the Roundsman wrapper, the game is packed inside the app, so it needs no server.
+
+<sub>[Back to contents](#contents)</sub>
 
 ## How the game works
 
@@ -43,6 +54,8 @@ Unlike the Roundsman wrapper, the game is packed inside the app, so it needs no 
 
 Routes keep running while you are away (4 hours to start, more with upgrades). The game saves on the device every few seconds, and a save code moves it to another phone.
 
+<sub>[Back to contents](#contents)</sub>
+
 ## Files
 
 - `web/engine.js`: the whole simulation and all the numbers (trucks, towns, prices, achievements). Tuning happens here.
@@ -50,7 +63,7 @@ Routes keep running while you are away (4 hours to start, more with upgrades). T
 - `web/sw.js`, `web/manifest.webmanifest`, `web/icons/`: offline play and home-screen install.
 - `apps/mobile/`: the Capacitor 8 wrapper. `android/` is the Android project (targets API 36, release signing from GitHub secrets). It adds two plugins: AdMob for optional rewarded ads and Google Play Billing for the Supporter Pack, both driven from `web/money.js`.
 - `.github/workflows/build-android.yml`: tests, then builds the test APK and the signed Play bundle on GitHub.
-- `docs/`: the website and privacy policy, served by GitHub Pages.
+- `docs/`: the website and privacy policy, served by GitHub Pages. `docs/guides/` holds the developer guides (index: `docs/guides/README.md`); the site leaves them out (`docs/_config.yml`).
 - `store/`: Google Play listing text, icon, feature graphic and screenshots.
 - `test/engine.test.js`: `node test/engine.test.js`.
 - `tools/sim.js`: a bot that plays greedily and prints when it hits each milestone (`node tools/sim.js 6`), for checking pacing after changing numbers.

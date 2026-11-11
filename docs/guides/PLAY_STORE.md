@@ -2,6 +2,22 @@
 
 Everything in the app is already set up for Google Play's current rules:
 
+<!-- contents: made by tools/mdtoc.js, run it again after changing headings -->
+## Contents
+
+- [1. Add your upload key to GitHub (once)](#1-add-your-upload-key-to-github-once)
+- [2. Build the release](#2-build-the-release)
+- [3. Create the app in Play Console](#3-create-the-app-in-play-console)
+- [4. App content answers](#4-app-content-answers)
+- [5. Store listing](#5-store-listing)
+- [6. Testing, then production](#6-testing-then-production)
+- [Updating the game later](#updating-the-game-later)
+- [Version 1.1: optional reward ads and the Supporter Pack](#version-11-optional-reward-ads-and-the-supporter-pack)
+  - [Set up once](#set-up-once)
+  - [Play Console answers that change for 1.1](#play-console-answers-that-change-for-11)
+
+<!-- /contents -->
+
 | Rule | How this app meets it |
 |---|---|
 | Package name (fixed forever after the first upload) | `app.roundsman.idle` |
@@ -23,6 +39,8 @@ Your upload key is in the project files, in `idle-roundsman-signing/`. It is **n
 3. Add the four secrets from the file (`TT_KEY_ALIAS`, `TT_KEYSTORE_PASSWORD`, `TT_KEY_PASSWORD`, `TT_KEYSTORE_BASE64`), copying each name and value exactly.
 4. Save `upload-key.jks` and `github-secrets.txt` somewhere private, like a password manager. Every update must be signed with this key. If it is ever lost, Google can reset it (Play Console > Test and release > App integrity > Upload key reset).
 
+<sub>[Back to contents](#contents)</sub>
+
 ## 2. Build the release
 
 1. GitHub repo > **Actions** > **Build Android app** > **Run workflow**. Type the version (1.0.0 the first time) and run it.
@@ -32,6 +50,8 @@ Your upload key is in the project files, in `idle-roundsman-signing/`. It is **n
 
 Each push to the repo also runs the tests and builds both files.
 
+<sub>[Back to contents](#contents)</sub>
+
 ## 3. Create the app in Play Console
 
 Play Console (play.google.com/console, $25 one-time developer fee) > **Create app**:
@@ -39,6 +59,8 @@ Play Console (play.google.com/console, $25 one-time developer fee) > **Create ap
 - Default language: English (United States)
 - App or game: **Game**. Free or paid: **Free**
 - Tick the two declarations.
+
+<sub>[Back to contents](#contents)</sub>
 
 ## 4. App content answers
 
@@ -58,9 +80,13 @@ Play Console > **Policy and programs** > **App content**. Answer each section li
 | Health | My app does not have any health features |
 | News apps | No |
 
+<sub>[Back to contents](#contents)</sub>
+
 ## 5. Store listing
 
-Fill in **Main store listing** from `store/listing.md` and upload the images in `store/` (icon, feature graphic, six phone screenshots). Google also requires a contact email shown on the listing; use one you are happy to make public.
+Fill in **Main store listing** from `STORE-LISTING.md` (in this folder) and upload the images in `store/` (icon, feature graphic, six phone screenshots). Google also requires a contact email shown on the listing; use one you are happy to make public.
+
+<sub>[Back to contents](#contents)</sub>
 
 ## 6. Testing, then production
 
@@ -71,9 +97,13 @@ On the first upload, accept **Play App Signing** (Google keeps the final signing
 
 Google's review of a new app usually takes a few days, sometimes longer.
 
+<sub>[Back to contents](#contents)</sub>
+
 ## Updating the game later
 
 Change the code, run the workflow with a higher version (1.0.1, 1.1.0 …), and upload the new `.aab` to the same track. The version code rises on its own.
+
+<sub>[Back to contents](#contents)</sub>
 
 ## Version 1.1: optional reward ads and the Supporter Pack
 
@@ -116,4 +146,4 @@ Builds made before step 1 use Google's test IDs: test ads work but earn nothing,
   - Device or other IDs > **Device or other IDs**
 - Purchases go through Google Play Billing; the game itself stores no purchase history, so nothing else is declared.
 
-Then update the full description from `store/listing.md` (it now has the No forced ads paragraph).
+Then update the full description from `STORE-LISTING.md` (it now has the No forced ads paragraph).
