@@ -53,14 +53,15 @@ function townDef(i, r) {
 const town = (s, i) => townDef(i, s.region || 0);
 
 /* Software modules: the Roundsman suite, bought level by level. */
+/* Every module tops out at a similar late-game price, so none is finished in minutes while another takes all day. */
 const SOFTWARE = {
-  planner:  { name: 'Route planner', about: 'Tighter routes. +12% stops per truck.', cost: 600, mult: 2.4, max: 15 },
-  pricing:  { name: 'Price alignment', about: 'Move old accounts to standard prices. +10% revenue.', cost: 1500, mult: 2.6, max: 20 },
-  portal:   { name: 'Customer portal', about: 'Sign-ups online. +25% customer growth.', cost: 900, mult: 2.3, max: 12 },
-  reports:  { name: 'Truck reports', about: 'Pre-trip inspections. -15% breakdowns.', cost: 3000, mult: 2.5, max: 8 },
-  dispatch: { name: 'Roadcall dispatch', about: 'Mechanics find the truck faster. -15% repair time.', cost: 4000, mult: 2.5, max: 8 },
-  payroll:  { name: 'Hours and payroll', about: 'Clean timesheets. -8% wages.', cost: 5000, mult: 2.6, max: 8 },
-  offline:  { name: 'Offline route book', about: 'Routes keep running when you are away. +1 hour away time.', cost: 8000, mult: 3, max: 8 }
+  planner:  { name: 'Route planner', about: 'Tighter routes. +12% stops per truck.', cost: 600, mult: 2.6, max: 15 },
+  pricing:  { name: 'Price alignment', about: 'Move old accounts to standard prices. +13% revenue.', cost: 1500, mult: 2.5, max: 15 },
+  portal:   { name: 'Customer portal', about: 'Sign-ups online. +25% customer growth.', cost: 900, mult: 3, max: 12 },
+  reports:  { name: 'Truck reports', about: 'Pre-trip inspections. -10% breakdowns.', cost: 3000, mult: 2.8, max: 12 },
+  dispatch: { name: 'Roadcall dispatch', about: 'Mechanics find the truck faster. -10% repair time.', cost: 4000, mult: 2.8, max: 12 },
+  payroll:  { name: 'Hours and payroll', about: 'Clean timesheets and fair schedules. -6% wages and -6% hiring costs.', cost: 5000, mult: 2.8, max: 12 },
+  offline:  { name: 'Offline route book', about: 'Routes keep running when you are away. +1 hour away time.', cost: 8000, mult: 3.6, max: 8 }
 };
 
 /* One-time unlocks that open new ways to grow. */
@@ -86,9 +87,8 @@ const LEGACY = {
 };
 
 const BASE = {
-  wage: 0.5,                // per driver per second
   mechWage: 0.9,            // per mechanic per second
-  driverCost: 40, driverMult: 1.1,
+  driverCost: 40, driverMult: 1.05,
   mechCost: 2500, mechMult: 1.35,
   yardCost: 2000, yardMult: 2, yardSlots: 10, drivewaySlots: 4,
   mktCost: 300, mktMult: 1.9,
@@ -99,6 +99,13 @@ const BASE = {
   boostSecs: 1800, boostMax: 7200  // optional 2x income: 30 minutes a reward, at most 2 hours banked
 };
 
+/* Driver grades. Everyone starts as a rookie; training moves one driver up a grade.
+   Better drivers take the biggest trucks first and get more stops out of them. */
+const GRADES = {
+  rookie: { name: 'Rookie', boost: 0, wage: 0.5 },
+  pro:    { name: 'Pro', boost: 0.3, wage: 2, cost: 15000, mult: 1.06, from: 'rookie', needs: 10, about: '+30% stops on the truck they drive.' },
+  vet:    { name: 'Veteran', boost: 0.7, wage: 6, cost: 1.5e6, mult: 1.06, from: 'pro', needs: 50, about: '+70% stops on the truck they drive, and half as many breakdowns.' }
+};
 const TAU = { day: 30 }; // one in-game day is 30 seconds
 
 function fresh(legacy) {
@@ -107,7 +114,7 @@ function fresh(legacy) {
     v: 1, cash: 0, earned: 0, t: 0, day: 1, rep: 60,
     towns: 1, cust: { res: 0, com: 0, ro: 0 }, paused: { res: false, com: false, ro: false },
     trucks: { pickup: 1, rear: 0, side: 0, front: 0, roll: 0 },
-    drivers: 0, mechanics: 0, yards: 0, marketing: 0,
+    drivers: 0, pros: 0, vets: 0, mechanics: 0, yards: 0, marketing: 0,
     software: {}, unlocks: {},
     down: [],                 // [{ type, left, total, where }]
     price: 1, priceDir: 0,    // recycling price index
@@ -145,11 +152,11 @@ function mults(s) {
   const sw = s.software, L = s.legacy.perks;
   return {
     cap: 1 + 0.12 * lvl(sw, 'planner'),
-    rev: (1 + 0.10 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars) * (s.boost > 0 ? 2 : 1) * region(s).rate,
+    rev: (1 + 0.13 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars) * (s.boost > 0 ? 2 : 1) * region(s).rate,
     growth: (1 + 0.25 * lvl(sw, 'portal')) * (1 + 0.3 * lvl(L, 'grow')) * (1 + 0.35 * s.marketing),
-    brk: Math.pow(0.85, lvl(sw, 'reports')) / (1 + 0.25 * s.mechanics),
-    repair: Math.pow(0.85, lvl(sw, 'dispatch')),
-    wage: Math.pow(0.92, lvl(sw, 'payroll')),
+    brk: Math.pow(0.9, lvl(sw, 'reports')) / (1 + 0.25 * s.mechanics),
+    repair: Math.pow(0.9, lvl(sw, 'dispatch')),
+    wage: Math.pow(0.94, lvl(sw, 'payroll')),
     fuel: s.unlocks.cng ? 0.55 : 1,
     dump: s.unlocks.landfill ? 0 : s.unlocks.transfer ? 0.5 : 1,
     awayH: BASE.awayHours + lvl(sw, 'offline') + 2 * lvl(L, 'away')
@@ -169,10 +176,23 @@ function working(s) {
   return out;
 }
 
+/* Who drives what: veterans take the biggest running trucks, then pros, then rookies.
+   Returns, for each truck type, how many veterans and pros are on it. */
+function crew(s, w) {
+  w = w || working(s); let v = s.vets || 0, p = s.pros || 0; const out = {};
+  ['side', 'roll', 'front', 'rear', 'pickup'].forEach(k => {
+    const nv = Math.min(w[k], v); v -= nv; const np = Math.min(w[k] - nv, p); p -= np; out[k] = { vet: nv, pro: np };
+  });
+  return out;
+}
 function capacity(s, w) {
-  w = w || working(s); const m = mults(s), c = { res: 0, com: 0, ro: 0 };
-  TRUCK_ORDER.forEach(k => { c[TRUCKS[k].svc] += w[k] * TRUCKS[k].cap * m.cap; });
+  w = w || working(s); const m = mults(s), c = { res: 0, com: 0, ro: 0 }, cr = crew(s, w);
+  TRUCK_ORDER.forEach(k => { c[TRUCKS[k].svc] += (w[k] + cr[k].vet * GRADES.vet.boost + cr[k].pro * GRADES.pro.boost) * TRUCKS[k].cap * m.cap; });
   return c;
+}
+function wagesPerSec(s) {
+  const pros = s.pros || 0, vets = s.vets || 0;
+  return ((s.drivers - pros - vets) * GRADES.rookie.wage + pros * GRADES.pro.wage + vets * GRADES.vet.wage + s.mechanics * BASE.mechWage) * mults(s).wage;
 }
 
 /* Money per second, split into its parts, for the current state. */
@@ -191,7 +211,7 @@ function economy(s) {
   if (s.unlocks.landfill) tipping = (served.res * SERVICES.res.dump + served.com * SERVICES.com.dump + served.ro * SERVICES.ro.dump) * 1.5 + 40 * s.towns;
   dump *= m.dump;
   const fuel = TRUCK_ORDER.reduce((n, k) => n + w[k] * TRUCKS[k].fuel, 0) * m.fuel;
-  const wages = (s.drivers * BASE.wage + s.mechanics * BASE.mechWage) * m.wage;
+  const wages = wagesPerSec(s);
   const income = gross + recycle + tipping, costs = dump + fuel + wages;
   const totalCust = s.cust.res + s.cust.com + s.cust.ro, totalMissed = missed.res + missed.com + missed.ro;
   return { w, cap, served, missed, gross, recycle, tipping, dump, fuel, wages, income, costs, net: income - costs, totalCust, totalMissed };
@@ -205,7 +225,8 @@ function tapValue(s) {
 /* ---------- prices of things ---------- */
 const price = {
   truck: (s, k) => costAt(TRUCKS[k].cost, TRUCKS[k].mult, k === 'pickup' ? s.trucks.pickup - 1 : s.trucks[k]),
-  driver: s => costAt(BASE.driverCost, BASE.driverMult, s.drivers),
+  driver: s => Math.ceil(costAt(BASE.driverCost, BASE.driverMult, s.drivers) * mults(s).wage),
+  train: (s, g) => Math.ceil(costAt(GRADES[g].cost, GRADES[g].mult, g === 'pro' ? (s.pros || 0) + (s.vets || 0) : (s.vets || 0)) * mults(s).wage),
   mechanic: s => costAt(BASE.mechCost, BASE.mechMult, s.mechanics),
   yard: s => costAt(BASE.yardCost, BASE.yardMult, s.yards),
   marketing: s => costAt(BASE.mktCost, BASE.mktMult, s.marketing),
@@ -234,6 +255,14 @@ const act = {
     s.trucks[k]++; note(s, 'Bought a ' + T.name.toLowerCase() + '.'); return '';
   },
   hireDriver(s) { const e = spend(s, price.driver(s)); if (e) return e; s.drivers++; return ''; },
+  train(s, g) {
+    const G = GRADES[g]; if (!G || !G.from) return 'No such grade.';
+    if (s.drivers < G.needs) return 'Needs ' + G.needs + ' drivers on the payroll first.';
+    if (gradeCount(s, G.from) < 1) return 'Nobody to train: hire or train a ' + GRADES[G.from].name.toLowerCase() + ' first.';
+    const e = spend(s, price.train(s, g)); if (e) return e;
+    if (g === 'pro') s.pros = (s.pros || 0) + 1; else { s.pros--; s.vets = (s.vets || 0) + 1; }
+    return '';
+  },
   hireMechanic(s) { const e = spend(s, price.mechanic(s)); if (e) return e; s.mechanics++; note(s, 'Hired mechanic number ' + s.mechanics + '.'); return ''; },
   buyYard(s) { const e = spend(s, price.yard(s)); if (e) return e; s.yards++; note(s, 'Opened yard ' + s.yards + '. Room for ' + slots(s) + ' trucks.', 'good'); return ''; },
   marketing(s) { const e = spend(s, price.marketing(s)); if (e) return e; s.marketing++; return ''; },
@@ -294,6 +323,7 @@ const act = {
   }
 };
 
+function gradeCount(s, g) { const p = s.pros || 0, v = s.vets || 0; return g === 'vet' ? v : g === 'pro' ? p : s.drivers - p - v; }
 function starsFor(s) { return s.earned < 1e6 ? 0 : Math.floor(Math.pow(s.earned / 1e6, 0.4)); }
 
 /* ---------- contract offers ---------- */
@@ -323,9 +353,9 @@ function tick(s, dt, quiet) {
   if (s.boost > 0) s.boost = Math.max(0, s.boost - dt);
   // breakdowns and repairs
   if (!quiet) {
-    const w = working(s);
+    const w = working(s), cr = crew(s, w);
     TRUCK_ORDER.forEach(k => {
-      for (let i = 0; i < w[k]; i++) if (rand(s) < BASE.breakdown * m.brk * dt) {
+      for (let i = 0; i < w[k]; i++) if (rand(s) < BASE.breakdown * m.brk * (i < cr[k].vet ? 0.5 : 1) * dt) {
         const total = BASE.repair * m.repair / (1 + 0.5 * s.mechanics);
         s.nid = (s.nid || 0) + 1;
         s.down.push({ id: 'd' + s.nid, type: k, left: total, total, where: STREETS[Math.floor(rand(s) * STREETS.length)] });
@@ -424,6 +454,8 @@ tiers('cust', (v, i) => ['First route', 'Regulars', 'A real route', 'Two trucks 
 tiers('earn', (v, i) => ['Gas money', 'Payday', 'Small business', 'Millionaire hauler', 'Eight figures', 'Nine figures', 'Billion dollar trash', 'Ten billion', 'Trillionaire of trash'][i], v => 'Earn ' + fmtMoney(v) + ' in one run.', [1000, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e12], s => s.earned, 'cash');
 tiers('fleet', (v, i) => ['Two trucks', 'Small fleet', 'Double digits', 'Full yard', 'Convoy', 'Armada', 'The biggest fleet in the state'][i], v => 'Own ' + v + ' trucks.', [2, 5, 10, 25, 50, 100, 250], truckCount, 'truck');
 tiers('crew', (v, i) => ['First hire', 'A real crew', 'Shift bidding', 'Union hall', 'Workforce'][i], v => 'Employ ' + v + ' drivers.', [1, 10, 30, 100, 300], s => s.drivers, 'people');
+tiers('pro', (v, i) => ['Promoted from within', 'Pro crew', 'All-pro'][i], v => 'Have ' + v + ' pro drivers.', [1, 25, 100], s => (s.pros || 0) + (s.vets || 0), 'people');
+tiers('vet', (v, i) => ['Old hand', 'Seasoned crew', 'Hall of fame'][i], v => 'Have ' + v + ' veteran drivers.', [1, 25, 100], s => s.vets || 0, 'people');
 tiers('town', (v, i) => ['Next town over', 'Three towns', 'County-wide', 'City contract', 'Port city', 'The metro', 'Beyond the map', 'Regional power', 'Coast to coast'][i], v => 'Serve ' + v + ' towns.', [2, 3, 4, 5, 6, 7, 8, 10, 15], s => s.towns, 'map');
 tiers('net', (v, i) => ['In the black', 'Hundred a second', 'Thousand a second', 'Money printer', 'Firehose'][i], v => 'Make ' + fmtMoney(v) + ' a second, after costs.', [10, 100, 1000, 1e5, 1e7], s => s.stats.bestNet, 'chart');
 tiers('tap', (v, i) => ['Still hops on the back', 'Callused hands', 'Never left the truck'][i], v => 'Ride along ' + fmt(v) + ' times.', [100, 1000, 10000], s => s.stats.taps, 'hand');
@@ -473,13 +505,14 @@ function load(str) {
   const s = fresh(j.legacy); Object.keys(j).forEach(k => { s[k] = j[k]; });
   ['cust', 'trucks', 'stats', 'paused'].forEach(k => { s[k] = Object.assign({}, fresh()[k], j[k] || {}); });
   s.legacy = Object.assign({ stars: 0, earnedStars: 0, perks: {}, sales: 0, best: 0, achievements: {} }, j.legacy || {});
+  Object.keys(SOFTWARE).forEach(k => { if (lvl(s.software, k) > SOFTWARE[k].max) s.software[k] = SOFTWARE[k].max; }); // older saves had other caps
   return s;
 }
 const exportCode = s => (typeof btoa === 'function' ? btoa(unescape(encodeURIComponent(save(s)))) : Buffer.from(save(s)).toString('base64'));
 const importCode = c => load(typeof atob === 'function' ? decodeURIComponent(escape(atob(c.trim()))) : Buffer.from(c.trim(), 'base64').toString());
 
 const VERSION = '1.1.0', PRIVACY_URL = 'https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html';
-const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, town, REGIONS, BAN, region, SOFTWARE, UNLOCKS, LEGACY, BASE, TAU, ACH, STREETS,
+const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, town, REGIONS, BAN, region, SOFTWARE, UNLOCKS, LEGACY, BASE, GRADES, TAU, ACH, STREETS, crew, gradeCount, wagesPerSec,
   fresh, tick, catchUp, economy, working, capacity, market, slots, truckCount, needDrivers, mults, tapValue, price, act, starsFor,
   checkAch, nextGoals, makeOffer, fmt, fmtMoney, save, load, exportCode, importCode, lvl };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TT = api;

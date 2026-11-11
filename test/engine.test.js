@@ -97,4 +97,22 @@ t('reputation climbs slower and falls faster in later regions', () => {
   const a = TT.fresh(), b = TT.fresh(); b.earned = 1e13; TT.act.move(b, 5);
   a.rep = b.rep = 50; TT.tick(a, 1); TT.tick(b, 1); assert(a.rep - 50 > b.rep - 50);
 });
+t('drivers stay cheap next to the trucks they drive', () => {
+  const s = TT.fresh(); s.drivers = 150; s.trucks.side = 150;
+  assert(TT.price.driver(s) < TT.price.truck(s, 'side') / 1000);
+});
+t('training: pros and veterans add stops to the biggest trucks', () => {
+  const s = TT.fresh(); s.cash = 1e12; s.unlocks.arms = true; s.yards = 2;
+  for (let i = 0; i < 12; i++) { TT.act.buyTruck(s, 'rear'); TT.act.hireDriver(s); }
+  TT.act.buyTruck(s, 'side'); TT.act.hireDriver(s);
+  const before = TT.capacity(s).res;
+  assert.equal(TT.act.train(s, 'vet'), 'Needs 50 drivers on the payroll first.');
+  assert.equal(TT.act.train(s, 'pro'), ''); assert.equal(s.pros, 1);
+  assert(Math.abs(TT.capacity(s).res - before - 0.3 * 1100) < 1e-6, 'the pro should drive the side loader');
+  s.drivers = 60; assert.equal(TT.act.train(s, 'vet'), ''); assert.equal(s.pros, 0); assert.equal(s.vets, 1);
+  assert(TT.wagesPerSec(s) > 0);
+});
+t('old saves with higher software levels are capped', () => {
+  const s = TT.fresh(); s.software.pricing = 18; assert.equal(TT.load(TT.save(s)).software.pricing, 15);
+});
 console.log(n + ' checks passed');

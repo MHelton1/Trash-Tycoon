@@ -81,11 +81,12 @@ const TABS = [['route', 'Route'], ['fleet', 'Fleet'], ['grow', 'Grow'], ['office
 function tabsBar() {
   $('#tabs').innerHTML = '<div class="in" role="tablist">' + TABS.map(([k, n]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${ic(k)}<span>${n}</span><i class="dot" id="dot-${k}"></i></button>`).join('') + '</div>';
 }
-function show(k) {
+function show(k, keepScroll) {
+  const y = keepScroll ? window.scrollY : 0;
   tab = k; shownRegion = S.region || 0; binds = {}; sections = {}; header();
   document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === k ? 'true' : 'false'));
   if (k === 'trophies') newTrophies = 0;
-  $('#main').innerHTML = VIEWS[k](); window.scrollTo(0, 0); refresh(); try { localStorage.setItem(KEY + '-tab', k); } catch (e) { /* private mode */ }
+  $('#main').innerHTML = VIEWS[k](); refresh(); window.scrollTo(0, y); try { localStorage.setItem(KEY + '-tab', k); } catch (e) { /* private mode */ }
 }
 
 /* ---------- the street scene ---------- */
@@ -191,7 +192,8 @@ const VIEWS = {
         ${buyBtn('Buy', () => T.price.truck(S, k), 'buyTruck', k, () => T.truckCount(S) >= T.slots(S) ? 'Yard full' : '')}</div></div>`; }).join('') +
       (locked.length ? `<div class="muted small" style="margin:-2px 2px 10px">More trucks open with: ${locked.map(k => esc(T.UNLOCKS[T.TRUCKS[k].unlock].name)).join(', ')} (Office tab).</div>` : '') +
       `<h2>People and places</h2>
-      <div class="card"><div class="item"><div class="ic">${ic('people')}</div><div class="grow"><h3>Drivers <span class="pill num" ${B(() => '× ' + S.drivers)}></span></h3><div class="about" ${B(() => 'Each costs ' + money(T.BASE.wage * T.mults(S).wage, 2) + '/s in wages. ' + (T.needDrivers(S) > S.drivers ? (T.needDrivers(S) - S.drivers) + ' truck(s) need a driver.' : T.needDrivers(S) < S.drivers ? 'You have ' + (S.drivers - T.needDrivers(S)) + ' spare.' : 'Every truck has a driver.'))}></div></div>${buyBtn('Hire', () => T.price.driver(S), 'hireDriver')}</div></div>
+      <div class="card"><div class="item"><div class="ic">${ic('people')}</div><div class="grow"><h3>Drivers <span class="pill num" ${B(() => '× ' + S.drivers)}></span></h3><div class="about" ${B(() => 'Rookies cost ' + money(T.GRADES.rookie.wage * T.mults(S).wage, 2) + '/s in wages. ' + (T.needDrivers(S) > S.drivers ? (T.needDrivers(S) - S.drivers) + ' truck(s) need a driver.' : T.needDrivers(S) < S.drivers ? 'You have ' + (S.drivers - T.needDrivers(S)) + ' spare.' : 'Every truck has a driver.'))}></div></div>${buyBtn('Hire', () => T.price.driver(S), 'hireDriver')}</div></div>
+      ` + ['pro', 'vet'].map(g => { const G = T.GRADES[g]; return `<div class="card"><div class="item"><div class="ic">${ic(g === 'vet' ? 'star' : 'people')}</div><div class="grow"><h3>${G.name} drivers <span class="pill num" ${B(() => '× ' + T.gradeCount(S, g))}></span></h3><div class="about" ${B(() => G.about + ' Train one ' + T.GRADES[G.from].name.toLowerCase() + ' at a time. ' + money(G.wage * T.mults(S).wage, 2) + '/s in wages.')}></div></div>${buyBtn('Train', () => T.price.train(S, g), 'train', g, () => S.drivers < G.needs ? 'At ' + G.needs + ' drivers' : T.gradeCount(S, G.from) < 1 ? 'No ' + T.GRADES[G.from].name.toLowerCase() + 's' : '')}</div></div>`; }).join('') + `
       <div class="card"><div class="item"><div class="ic">${ic('wrench')}</div><div class="grow"><h3>Mechanics <span class="pill num" ${B(() => '× ' + S.mechanics)}></span></h3><div class="about">Fewer breakdowns and much faster repairs. ${money(T.BASE.mechWage, 2)}/s each.</div></div>${buyBtn('Hire', () => T.price.mechanic(S), 'hireMechanic')}</div></div>
       <div class="card"><div class="item"><div class="ic">${ic('yard')}</div><div class="grow"><h3>Yards <span class="pill num" ${B(() => '× ' + S.yards)}></span></h3><div class="about">${S.yards ? '' : 'Your driveway holds ' + T.BASE.drivewaySlots + ' trucks. '}Each yard parks ${T.BASE.yardSlots} more.</div></div>${buyBtn('Open', () => T.price.yard(S), 'buyYard')}</div></div>`;
   },
@@ -317,7 +319,7 @@ function onClick(ev) {
   if (typeof err === 'string' && err) note(err);
   if (a !== 'tap' && a !== 'flyer') persist();
   // the tab shape can change after a purchase (a new truck type, a new town)
-  if (['unlock', 'expand', 'buyYard'].indexOf(a) >= 0 && tab !== 'route') show(tab); else refresh();
+  if (['unlock', 'expand', 'buyYard'].indexOf(a) >= 0 && tab !== 'route') show(tab, true); else refresh();
 }
 function askName() {
   modal(`<h2>${S.name ? 'Rename your company' : 'Start your trash company'}</h2>${S.name ? '' : '<p>You have one pickup, a trailer and 400 homes in Maple Hollow who need their cans emptied. Grow it into whatever you like.</p>'}<label class="small muted" for="nm">Company name</label><input type="text" id="nm" maxlength="32" value="${esc(S.name || 'Curbside Hauling')}"><div class="btns"><button class="btn" data-m="ok">${S.name ? 'Save' : 'Start hauling'}</button></div>`, (k, m) => { const v = m.querySelector('#nm').value.trim(); S.name = v || 'Curbside Hauling'; persist(); header(); refresh(); });
