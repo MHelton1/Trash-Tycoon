@@ -75,19 +75,61 @@ t('away earnings double once', () => {
   assert.equal(TT.act.doubleAway(s, r), ''); assert(Math.abs(s.cash - (c + r.cash)) < 1e-6); assert.notEqual(TT.act.doubleAway(s, r), '');
 });
 t('a banked boost survives selling the company', () => { const s = TT.fresh(); s.earned = 2e6; TT.act.boost(s); assert.equal(TT.act.sell(s).boost, 1800); });
-t('moving region starts over with a tenth of the cash and keeps earnings', () => {
+t('a new region starts with its set amount; the old one is kept as it was', () => {
   const s = TT.fresh(); s.cash = 1e6; s.earned = 2e7; s.trucks.rear = 3; s.software.planner = 2; s.towns = 3;
   assert.match(TT.act.move(s, 2), /Earn/);
-  assert.equal(TT.act.move(s, 1), ''); assert.equal(s.region, 1); assert.equal(s.cash, 1e5); assert.equal(s.earned, 2e7);
+  assert.equal(TT.act.move(s, 1), ''); assert.equal(s.region, 1); assert.equal(s.cash, TT.REGIONS[1].fund); assert.equal(s.earned, 2e7);
   assert.equal(s.trucks.rear, 0); assert.equal(s.towns, 1); assert.equal(s.software.planner, 2); assert.equal(s.rep, 50);
   assert.equal(TT.town(s, 0).name, 'Loon Lake'); assert(TT.market(s).res > 400);
+  s.cash = 777;
+  assert.equal(TT.act.move(s, 0), ''); assert.equal(s.region, 0); assert.equal(s.trucks.rear, 3); assert.equal(s.towns, 3); assert(s.cash >= 1e6, 'money does not move between regions');
+  assert.equal(TT.act.move(s, 1), ''); assert.equal(s.cash, 777); assert.equal(TT.town(s, 0).name, 'Loon Lake');
 });
-t('a bad reputation in a hard region gets you run out, until you sell', () => {
-  const s = TT.fresh(); s.earned = 6e8; s.cash = 1e5; TT.act.move(s, 2); s.rep = 5;
+t('regions you are not in keep running at a quarter speed; a manager speeds them up', () => {
+  const mk = mgr => { const s = TT.fresh(); s.earned = 2e7; s.cust.res = 40; s.manager = mgr; TT.act.move(s, 1); return s; };
+  const a = mk(0), b = mk(5), c0 = a.regions[0].cash;
+  for (let i = 0; i < 100; i++) { TT.tick(a, 1, true); TT.tick(b, 1, true); }
+  const gotA = a.regions[0].cash - c0, gotB = b.regions[0].cash - c0, full = TT.fresh(); full.cust.res = 40; const f0 = full.cash; for (let i = 0; i < 100; i++) TT.tick(full, 1, true);
+  const gotF = full.cash - f0;
+  assert(gotA > 0 && Math.abs(gotA / gotF - 0.25) < 0.06, 'quarter speed ' + gotA / gotF); assert(Math.abs(gotB / gotF - 1) < 0.06, 'manager level 5 runs it at full speed ' + gotB / gotF);
+  assert.equal(TT.awaySpeed({ manager: 2 }), 0.55);
+});
+t('run out of a hard region: shut for 30 minutes, half the customers lost, trucks kept', () => {
+  const s = TT.fresh(); s.earned = 6e8; TT.act.move(s, 2); s.trucks.rear = 4; s.drivers = 4; s.cust.res = 1000; s.rep = 5;
   for (let i = 0; i < 130 && s.region === 2; i++) { s.rep = 5; TT.tick(s, 1); }
-  assert.equal(s.region, 1); assert(s.banned.plains); assert.match(TT.act.move(s, 2), /ran you out/);
+  assert.equal(s.region, 0, 'back to the branch you have'); assert(!s.banned.plains); assert.match(TT.act.move(s, 2), /shut to you for 30 more minutes/);
+  const p = s.regions[2]; assert.equal(p.trucks.rear, 4); assert(p.cust.res <= 500); assert.equal(p.rep, TT.REGIONS[2].startRep);
   assert(TT.checkAch(s).some(a => a.id === 'banned'));
-  const n2 = TT.act.sell(s); assert.equal(n2.region, 0); assert(!n2.banned.plains);
+  for (let i = 0; i < 31; i++) TT.tick(s, 60, true);
+  assert.equal(TT.act.move(s, 2), ''); assert.equal(s.trucks.rear, 4);
+});
+t('run out of Capital Metro: that branch is gone until you rebrand, and it starts lower each time', () => {
+  const s = TT.fresh(); s.name = 'Curbside Hauling'; s.earned = 2e13; TT.act.move(s, 5); s.trucks.rear = 9; s.rep = 5;
+  for (let i = 0; i < 130 && s.region === 5; i++) { s.rep = 5; TT.tick(s, 1); }
+  assert.equal(s.region, 0, 'back to a branch you already have'); assert(s.banned.metro); assert(!s.regions[5]); assert.match(TT.act.move(s, 5), /Rebrand/);
+  assert.equal(TT.price.rename(s), 0, 'the first change from the starting name is free');
+  assert.equal(TT.act.rename(s, 'Blue Line Waste'), ''); assert(!s.banned.metro); assert.equal(s.metroRep, TT.REGIONS[5].startRep - 10);
+  assert.equal(TT.act.move(s, 5), ''); assert.equal(s.trucks.rear, 0); assert.equal(s.rep, 20); assert.equal(s.cash, TT.REGIONS[5].fund);
+  assert(TT.price.rename(s) >= 25000, 'after that, renaming costs'); s.cash = 0; assert.match(TT.act.rename(s, 'Again'), /costs/);
+});
+t('old saves: a run-out that lasted until a sale is lifted, except Capital Metro', () => {
+  const s = TT.fresh(); s.banned = { plains: 1, metro: 1 }; const l = TT.load(TT.save(s)); assert(!l.banned.plains); assert(l.banned.metro); assert.deepEqual(l.regions, {});
+});
+t('selling the company clears every region and ban', () => {
+  const s = TT.fresh(); s.earned = 2e13; TT.act.move(s, 1); s.banned.metro = 1; const n = TT.act.sell(s); assert.equal(n.region, 0); assert.deepEqual(n.regions, {}); assert(!n.banned.metro);
+});
+t('route supervisors: open at 15 drivers, more stops and fewer breakdowns for the drivers they cover', () => {
+  const s = TT.fresh(); s.cash = 1e9; s.drivers = 10; assert.match(TT.act.hireSupervisor(s), /15 drivers/);
+  s.drivers = 30; s.trucks.rear = 30; s.yards = 3; const c0 = TT.capacity(s).res, b0 = TT.mults(s).brk;
+  assert.equal(TT.act.hireSupervisor(s), ''); assert.equal(TT.superCover(s), 0.5);
+  assert(Math.abs(TT.capacity(s).res / c0 - 1.05) < 1e-9); assert(TT.mults(s).brk < b0); assert(TT.wagesPerSec(s) > 0);
+});
+t('yard levels park more trucks and add perks; every yard upgrades together', () => {
+  const s = TT.fresh(); s.cash = 1e12; assert.match(TT.act.upgradeYards(s), /Open a yard/);
+  TT.act.buyYard(s); TT.act.buyYard(s); assert.equal(TT.slots(s), 24);
+  const p1 = TT.price.yardTier(s); assert.equal(TT.act.upgradeYards(s), ''); assert.equal(TT.slots(s), 34); assert(TT.mults(s).repair < 1);
+  assert(TT.price.yardTier(s) > p1); TT.act.upgradeYards(s); TT.act.upgradeYards(s); assert.equal(TT.slots(s), 94);
+  assert(TT.mults(s).fuel < 1 && TT.mults(s).dump < 1); assert.match(TT.act.upgradeYards(s), /as big/);
 });
 t('the home region never bans, and time away never bans', () => {
   const s = TT.fresh(); s.rep = 1; for (let i = 0; i < 300; i++) { s.rep = 1; TT.tick(s, 1); } assert.equal(s.region, 0);
