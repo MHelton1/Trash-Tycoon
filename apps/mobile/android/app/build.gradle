@@ -20,6 +20,14 @@ android {
     // Upload key for Google Play, read from the environment (GitHub secrets in the build workflow).
     def ks = System.getenv('TT_KEYSTORE_FILE')
     signingConfigs {
+        // Fixed key for the test APK only, so a new test build installs over the old one (and keeps the save).
+        // It is public on purpose and is NOT the Google Play upload key.
+        debug {
+            storeFile file('test-apk.keystore')
+            storePassword 'testapk'
+            keyAlias 'test'
+            keyPassword 'testapk'
+        }
         if (ks) {
             upload {
                 storeFile file(ks)
@@ -30,6 +38,9 @@ android {
         }
     }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             if (ks) signingConfig signingConfigs.upload
             minifyEnabled false
