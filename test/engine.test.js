@@ -91,8 +91,8 @@ t('regions you are not in keep running at a quarter speed; a manager speeds them
   for (let i = 0; i < 100; i++) { TT.tick(a, 1, true); TT.tick(b, 1, true); }
   const gotA = a.regions[0].cash - c0, gotB = b.regions[0].cash - c0, full = TT.fresh(); full.cust.res = 40; const f0 = full.cash; for (let i = 0; i < 100; i++) TT.tick(full, 1, true);
   const gotF = full.cash - f0;
-  assert(gotA > 0 && Math.abs(gotA / gotF - 0.25) < 0.06, 'quarter speed ' + gotA / gotF); assert(Math.abs(gotB / gotF - 1) < 0.06, 'manager level 5 runs it at full speed ' + gotB / gotF);
-  assert.equal(TT.awaySpeed({ manager: 2 }), 0.55);
+  assert(gotA > 0 && Math.abs(gotA / gotF - 0.15) < 0.05, '15% speed ' + gotA / gotF); assert(Math.abs(gotB / gotF - 1) < 0.06, 'manager level 5 runs it at full speed ' + gotB / gotF);
+  assert(Math.abs(TT.awaySpeed({ manager: 2 }) - 0.49) < 1e-9);
 });
 t('run out of a hard region: shut for 30 minutes, half the customers lost, trucks kept', () => {
   const s = TT.fresh(); s.earned = 6e8; TT.act.move(s, 2); s.trucks.rear = 4; s.drivers = 4; s.cust.res = 1000; s.rep = 5;

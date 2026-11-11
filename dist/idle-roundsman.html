@@ -234,8 +234,8 @@ const REGIONS = [
   { id: 'metro', fund: 1e11, name: 'Capital Metro', about: 'The big city. Every council member has your number on speed dial.', towns: ['Old Town', 'Midtown', 'Harbor District', 'Uptown', 'Westside', 'Capital City'], scale: 7, rate: 6.5, up: 0.3, down: 3.4, startRep: 30, ban: true, need: 1e13 }
 ];
 const BAN = { rep: 15, secs: 120, lockSecs: 1800, lose: 0.5, rebrandRep: 10 }; // below 15 reputation for 2 minutes of play gets you run out
-/* the regions you are not looking at: a quarter speed, +15% per regional manager level (all the way at level 5) */
-const MANAGER = { base: 0.25, step: 0.15, max: 5, cost: 25000, share: 0.02, mult: 4 };   // first level: 2% of what the region needs to open (at least $25K), then 4x a level
+/* the regions you are not looking at: 15% speed, +17% per regional manager level (full speed at level 5) */
+const MANAGER = { base: 0.15, step: 0.17, max: 5, cost: 50000, share: 0.05, mult: 5 };   // first level: 5% of what the region needs to open (at least $50K), then 5x a level; 15% speed up to 100% at level 5
 /* what each region keeps for itself; everything else (name, software, trophies, Legacy, this run's earnings) is shared */
 const REGION_KEYS = ['cash', 'towns', 'cust', 'paused', 'trucks', 'drivers', 'pros', 'vets', 'supers', 'mechanics', 'yards', 'yardLvl', 'marketing', 'unlocks', 'down', 'price', 'priceDir', 'offer', 'nextOffer', 'rep', 'banClock', 'manager'];
 const lastRegion = () => REGIONS.length - 1;
