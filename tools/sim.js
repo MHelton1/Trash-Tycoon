@@ -1,5 +1,5 @@
 /* Pacing bot: plays the game greedily and prints when it reaches each milestone.
-   Use: node tools/sim.js [hours] [taps-per-second]  */
+   Use: node tools/sim.js [hours] [taps-per-second]   (MOVE=1 moves on to each region as soon as it opens)  */
 'use strict';
 const TT = require('../web/engine.js');
 const hours = +process.argv[2] || 6, tps = process.argv[3] !== undefined ? +process.argv[3] : 2;
@@ -30,6 +30,7 @@ function think() {
   if (s.marketing < 25 && fill < 0.6) cands.push(['mkt', P.marketing(s), () => A.marketing(s)]);
   Object.keys(TT.SOFTWARE).forEach(k => { if (TT.lvl(s.software, k) < TT.SOFTWARE[k].max) cands.push(['sw ' + k, P.software(s, k) * (k === 'offline' ? 3 : 1), () => A.software(s, k)]); });
   Object.keys(TT.UNLOCKS).forEach(k => { const U = TT.UNLOCKS[k]; if (!s.unlocks[k] && (!U.needs || s.unlocks[U.needs])) cands.push(['unlock ' + k, U.cost, () => A.unlock(s, k)]); });
+  ['pro', 'vet'].forEach(g => { const G = TT.GRADES[g]; if (s.drivers >= G.needs && TT.gradeCount(s, G.from) > 0) cands.push(['train ' + g, P.train(s, g) * 2, () => A.train(s, g)]); });
   if (s.mechanics < TT.truckCount(s) / 6) cands.push(['mech', P.mechanic(s) * 2, () => A.hireMechanic(s)]);
   cands.sort((a, b) => a[1] - b[1]);
   for (const c of cands.slice(0, 3)) if (c[1] <= s.cash) { c[2](); if (process.env.V && t0 < +process.env.V * 60) console.log(clock(t0).padStart(8), '   buy', c[0], TT.fmtMoney(c[1])); return true; }
@@ -42,9 +43,11 @@ for (let t = 0; t < hours * 3600; t++) { t0 = t;
   if (t < 600 && t % 2 === 0) TT.act.flyer(s);
   TT.tick(s, 1);
   for (let k = 0; k < 4 && think(); k++);
+  if (process.env.MOVE) { const r = (s.region || 0) + 1; if (TT.REGIONS[r] && s.earned >= TT.REGIONS[r].need && !TT.act.move(s, r)) console.log(clock(t).padStart(8), 'moved to', TT.REGIONS[r].name, 'with', TT.fmtMoney(s.cash)); }
   TT.checkAch(s).forEach(a => mark(t, '★ ' + a.name + ' — ' + a.desc));
   Object.keys(s.unlocks).forEach(k => mark(t, 'unlock ' + k));
-  if (t % 1800 === 0) { const e = TT.economy(s); console.log(clock(t).padStart(8), `  [cash ${TT.fmtMoney(s.cash)} net ${TT.fmtMoney(e.net)}/s cust ${TT.fmt(e.totalCust)} missed ${TT.fmt(e.totalMissed)} rep ${s.rep.toFixed(0)} trucks ${TT.truckCount(s)} towns ${s.towns} stars ${TT.starsFor(s)}]`); }
+  Object.keys(TT.SOFTWARE).forEach(k => { if (TT.lvl(s.software, k) >= TT.SOFTWARE[k].max) mark(t, 'maxed ' + k); });
+  if (t % 1800 === 0) { const e = TT.economy(s); console.log(clock(t).padStart(8), `  [cash ${TT.fmtMoney(s.cash)} net ${TT.fmtMoney(e.net)}/s cust ${TT.fmt(e.totalCust)} missed ${TT.fmt(e.totalMissed)} rep ${s.rep.toFixed(0)} trucks ${TT.truckCount(s)} region ${s.region} drivers ${s.drivers}/${s.pros}p/${s.vets}v towns ${s.towns} stars ${TT.starsFor(s)}]`); }
 }
 console.log('achievements', Object.keys(s.legacy.achievements).length, '/', TT.ACH.length);
 if (process.env.DUMP) require('fs').writeFileSync(process.env.DUMP, TT.save(s));

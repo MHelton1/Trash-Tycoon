@@ -45,7 +45,7 @@ Routes keep running while you are away (4 hours to start, more with upgrades). T
 - `web/engine.js`: the whole simulation and all the numbers (trucks, towns, prices, achievements). Tuning happens here.
 - `web/ui.js`, `web/style.css`, `web/index.html`: the screens.
 - `web/sw.js`, `web/manifest.webmanifest`, `web/icons/`: offline play and home-screen install.
-- `apps/mobile/`: the Capacitor 8 wrapper. `android/` is the Android project (targets API 36, no permissions, release signing from GitHub secrets).
+- `apps/mobile/`: the Capacitor 8 wrapper. `android/` is the Android project (targets API 36, release signing from GitHub secrets). It adds two plugins: AdMob for optional rewarded ads and Google Play Billing for the Supporter Pack, both driven from `web/money.js`.
 - `.github/workflows/build-android.yml`: tests, then builds the test APK and the signed Play bundle on GitHub.
 - `docs/`: the website and privacy policy, served by GitHub Pages.
 - `store/`: Google Play listing text, icon, feature graphic and screenshots.

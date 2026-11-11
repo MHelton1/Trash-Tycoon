@@ -27,7 +27,13 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- AdMob app ID (set in res/values/strings.xml). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
     </application>
 
-    <!-- No permissions: the game runs entirely on the phone and never goes online. -->
+    <!-- No permissions are declared here. The AdMob and Google Play Billing libraries add the ones they need
+         (internet, network state, advertising ID and billing). Nothing reads location, contacts, files or the camera. -->
 </manifest>

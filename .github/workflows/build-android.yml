@@ -59,6 +59,9 @@ jobs:
           jarsigner -verify "$AAB" | tail -1
           unzip -p "$AAB" base/manifest/AndroidManifest.xml > /dev/null
           echo "Built version $VERSION_NAME (code $VERSION_CODE)"
+          if grep -q 3940256099942544 ../../../web/money.js app/src/main/res/values/strings.xml; then
+            echo "::warning::This build still uses Google's test ad IDs, so its ads show samples and earn nothing. Fine for testing; put your own AdMob IDs in before a production release (PLAY_STORE.md, version 1.1)."
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: Idle-Roundsman-test-apk-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}

@@ -3,12 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "description": "Idle Roundsman for Android and iPhone. The whole game is bundled inside the app, so it plays with no signal.",
-  "scripts": { "copy-web": "node scripts/prepare.js web" },
-  "engines": { "node": ">=22" },
+  "scripts": {
+    "copy-web": "node scripts/prepare.js web"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
+    "@capacitor-community/admob": "8.2.1",
     "@capacitor/android": "8.5.3",
     "@capacitor/core": "8.5.3",
-    "@capacitor/ios": "8.5.3"
+    "@capacitor/ios": "8.5.3",
+    "@capgo/native-purchases": "8.9.5"
   },
   "devDependencies": {
     "@capacitor/assets": "3.0.5",
