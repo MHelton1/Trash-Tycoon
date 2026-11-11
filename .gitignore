@@ -2,3 +2,4 @@ node_modules/
 *.jks
 *.keystore
 github-secrets.txt
+!apps/mobile/android/app/test-apk.keystore

@@ -8,7 +8,7 @@ An idle game built on the Roundsman world: start with one pickup and a trailer i
 
 - **In a browser:** open `dist/idle-roundsman.html` (one file, works offline), or serve the `web/` folder (`npx http-server web`) and open it.
 - **iPhone, quickest:** put the `web/` folder on any HTTPS address, open it in Safari, Share, Add to Home Screen. It works with no signal after the first load.
-- **Android app:** every push builds a test APK on GitHub (Actions > Build Android app > the run > Artifacts). Send `app-debug.apk` to a phone and open it (allow "install unknown apps").
+- **Android app:** every push builds a test APK on GitHub (Actions > Build Android app > the run > Artifacts). Send `app-debug.apk` to a phone and open it (allow "install unknown apps"). Test APKs share one fixed test key, so a new one installs over the old one and keeps your save. A test APK and the Google Play version are signed differently, so switching between them needs an uninstall (copy your save code first).
 - **Google Play:** see [PLAY_STORE.md](PLAY_STORE.md) for the signed release build and every Play Console answer.
 - **iPhone App Store build (needs a Mac, Xcode and the $99/year Apple developer account):**
   ```
