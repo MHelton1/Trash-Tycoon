@@ -5,11 +5,10 @@
 (function () {
 'use strict';
 const CONFIG = {
-  // Google's public test IDs, which show sample ads and earn nothing.
-  // Replace both with the IDs from your AdMob account before a store release, and set testing to false.
-  // (The AdMob app ID goes in apps/mobile/android/app/src/main/res/values/strings.xml.)
-  rewardedAdId: 'ca-app-pub-3940256099942544/5224354917',
-  testing: true,
+  // Idle Roundsman's own AdMob rewarded unit. The AdMob app ID is in apps/mobile/android/app/src/main/res/values/strings.xml.
+  // For sample ads while developing, use Google's test unit ca-app-pub-3940256099942544/5224354917 and set testing to true.
+  rewardedAdId: 'ca-app-pub-5053037162821375/2331589132',
+  testing: false,
   product: 'supporter_pack',
   roundsmanUrl: 'https://roundsman.app'
 };
