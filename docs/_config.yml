@@ -1,0 +1,3 @@
+# GitHub Pages serves this folder as the game's website. The guides are for the developer, not the site.
+exclude:
+  - guides

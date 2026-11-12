@@ -2,9 +2,24 @@
 
 Copy these into Play Console > Grow users > Store presence > Main store listing.
 
+<!-- contents: made by tools/mdtoc.js, run it again after changing headings -->
+## Contents
+
+- [Package name](#package-name)
+- [App name (30 characters max)](#app-name-30-characters-max)
+- [Short description (80 characters max)](#short-description-80-characters-max)
+- [Full description (4,000 characters max)](#full-description-4000-characters-max)
+- [Category and tags](#category-and-tags)
+- [Contact details](#contact-details)
+- [Graphics (in this folder)](#graphics-in-this-folder)
+
+<!-- /contents -->
+
 ## Package name
 
 `app.roundsman.idle` (Play Console reads it from the uploaded file and it can never change.)
+
+<sub>[Back to contents](#contents)</sub>
 
 ## App name (30 characters max)
 
@@ -12,9 +27,13 @@ Idle Roundsman
 
 (The same name shows under the icon on the phone.)
 
+<sub>[Back to contents](#contents)</sub>
+
 ## Short description (80 characters max)
 
 Grow a trash company from one pickup truck to the biggest hauler in the state.
+
+<sub>[Back to contents](#contents)</sub>
 
 ## Full description (4,000 characters max)
 
@@ -43,11 +62,15 @@ An ad only plays when you tap to earn a reward, like double income for 30 minute
 
 Built on the Roundsman route software for residential waste collection.
 
+<sub>[Back to contents](#contents)</sub>
+
 ## Category and tags
 
 - App or game: Game
 - Category: Simulation
 - Tags to pick: Idle, Business sim, Tycoon, Casual, Offline
+
+<sub>[Back to contents](#contents)</sub>
 
 ## Contact details
 
@@ -55,10 +78,12 @@ Built on the Roundsman route software for residential waste collection.
 - Website: https://roundsman.app (if you host app-ads.txt there for AdMob; otherwise https://mhelton1.github.io/Trash-Tycoon/)
 - Privacy policy: https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html
 
+<sub>[Back to contents](#contents)</sub>
+
 ## Graphics (in this folder)
 
 | Play Console field | File | Size |
 |---|---|---|
-| App icon | `icon-512.png` | 512 × 512 PNG |
-| Feature graphic | `feature-graphic.png` | 1024 × 500 PNG |
-| Phone screenshots | `screenshots/1-route.png` … `6-company.png` | 1080 × 1920 PNG, 9:16 |
+| App icon | `store/icon-512.png` | 512 × 512 PNG |
+| Feature graphic | `store/feature-graphic.png` | 1024 × 500 PNG |
+| Phone screenshots | `store/screenshots/1-route.png` … `6-company.png` | 1080 × 1920 PNG, 9:16 |
