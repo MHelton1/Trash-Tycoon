@@ -315,9 +315,27 @@ const special = {
   privacy() { modal(`<h2>Privacy</h2>${M.native ? `<p>Idle Roundsman has no accounts and never asks for your name, email or location. Your company is saved only on this phone.</p><p>Ads play only when you tap a reward button. Those ads come from Google AdMob, which uses your phone's advertising ID and basic device information to show and count ads. Players in Europe and the UK are asked first. Purchases go through Google Play, and we never see your payment details.</p><p>` : `<p>Idle Roundsman does not collect, store or share any personal information. There are no accounts, ads, analytics or trackers.</p><p>Your company is saved only on this device. `} A save code is created only when you press Copy, and goes only where you paste it. Uninstalling the game or pressing Erase deletes everything.</p><p class="small muted">Full policy: <a href="${T.PRIVACY_URL}" target="_blank" rel="noopener">${esc(T.PRIVACY_URL.replace('https://', ''))}</a></p><div class="btns"><button class="btn" data-m="ok">Close</button></div>`, () => {}); },
   wipeAsk() { modal(`<h2>Erase everything?</h2><p>This deletes the company, your trophies and Legacy on this phone. It cannot be undone.</p><div class="btns"><button class="btn ghost" data-m="no">Cancel</button><button class="btn" style="background:var(--bad);border-color:var(--bad)" data-m="yes">Erase</button></div>`, k => { if (k === 'yes') { S = T.fresh(); persist(); show('route'); askName(); } }); }
 };
+/* Nov 15: Ride along and Hand out flyers count every finger. A click only comes from one finger at a time (and after it
+   lifts), so these two act on pointerdown: two thumbs tapping together, or one finger held while another taps, each
+   counts. The click that follows a touch is then ignored so nothing counts twice; a keyboard or switch click (no
+   pointerdown) still works. */
+const FAST = { tap: 1, flyer: 1 }, MAX_PER_SEC = 25;
+let lastPress = 0, pressTimes = [];
+function onPress(ev) {
+  if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+  const b = ev.target.closest && ev.target.closest('[data-a]'); if (!b || b.disabled || !FAST[b.dataset.a]) return;
+  ev.preventDefault();   // no text selection, long-press menu or double-tap zoom on the button
+  const now = performance.now(); lastPress = now;
+  pressTimes = pressTimes.filter(t => now - t < 1000); if (pressTimes.length >= MAX_PER_SEC) return; pressTimes.push(now);
+  act(b, ev);
+}
 function onClick(ev) {
   const t = ev.target.closest('[data-tab]'); if (t) { show(t.dataset.tab); return; }
   const b = ev.target.closest('[data-a]'); if (!b || b.disabled) return;
+  if (FAST[b.dataset.a] && performance.now() - lastPress < 800) return;   // already counted on pointerdown
+  act(b, ev);
+}
+function act(b, ev) {
   const a = b.dataset.a, x = b.dataset.x;
   let err = '';
   if (special[a]) err = special[a](b, ev) || ''; else if (T.act[a]) err = T.act[a](S, x) || '';
@@ -362,6 +380,7 @@ function start() {
   try { const t = localStorage.getItem(KEY + '-tab'); if (t && VIEWS[t]) tab = t; } catch (e) { /* private mode */ }
   tabsBar(); show(tab);
   document.addEventListener('click', onClick);
+  document.addEventListener('pointerdown', onPress, { passive: false });
   M.onChange(refresh);
   setInterval(frame, 250); setInterval(persist, 5000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
