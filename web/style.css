@@ -120,7 +120,7 @@ h3{font:600 15px/1.25 var(--sans);margin:0}
 .scene .lbl{position:absolute;left:10px;top:8px;font-size:12px;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--panel) 80%,transparent);padding:2px 8px;border-radius:12px}
 
 .actions{display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:10px}
-.tap{position:relative;border:0;border-radius:14px;background:var(--good);color:var(--on);padding:14px 10px;min-height:76px;font-weight:700;font-size:17px;box-shadow:0 3px 0 color-mix(in srgb,var(--good) 60%,#000);user-select:none;-webkit-user-select:none}
+.tap{touch-action:none;-webkit-touch-callout:none;position:relative;border:0;border-radius:14px;background:var(--good);color:var(--on);padding:14px 10px;min-height:76px;font-weight:700;font-size:17px;box-shadow:0 3px 0 color-mix(in srgb,var(--good) 60%,#000);user-select:none;-webkit-user-select:none}
 .tap:active{transform:translateY(2px);box-shadow:0 1px 0 color-mix(in srgb,var(--good) 60%,#000)}
 .tap small{display:block;font-weight:500;font-size:13px;opacity:.9}
 .tap.alt{background:var(--svc);box-shadow:0 3px 0 color-mix(in srgb,var(--svc) 60%,#000)}
