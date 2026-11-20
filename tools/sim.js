@@ -31,6 +31,7 @@ function think() {
   Object.keys(TT.SOFTWARE).forEach(k => { if (TT.lvl(s.software, k) < TT.SOFTWARE[k].max) cands.push(['sw ' + k, P.software(s, k) * (k === 'offline' ? 3 : 1), () => A.software(s, k)]); });
   Object.keys(TT.UNLOCKS).forEach(k => { const U = TT.UNLOCKS[k]; if (!s.unlocks[k] && (!U.needs || s.unlocks[U.needs])) cands.push(['unlock ' + k, U.cost, () => A.unlock(s, k)]); });
   ['pro', 'vet'].forEach(g => { const G = TT.GRADES[g]; if (s.drivers >= G.needs && TT.gradeCount(s, G.from) > 0) cands.push(['train ' + g, P.train(s, g) * 2, () => A.train(s, g)]); });
+  ['jour', 'master'].forEach(g => { const G = TT.MGRADES[g]; if (s.mechanics >= G.needs && TT.mechCount(s, G.from) > 0) cands.push(['mtrain ' + g, P.trainMech(s, g) * 3, () => A.trainMech(s, g)]); });
   if (s.mechanics < TT.truckCount(s) / 6) cands.push(['mech', P.mechanic(s) * 2, () => A.hireMechanic(s)]);
   if (s.drivers >= TT.SUPER.needs && TT.superCover(s) < 1) cands.push(['supervisor', P.supervisor(s) * 1.5, () => A.hireSupervisor(s)]);
   if (s.yards >= 2 && TT.YARD_TIERS[(s.yardLvl || 0) + 1] && TT.truckCount(s) >= TT.slots(s) - 2) cands.push(['yard level', P.yardTier(s), () => A.upgradeYards(s)]);

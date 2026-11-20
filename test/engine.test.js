@@ -157,4 +157,25 @@ t('training: pros and veterans add stops to the biggest trucks', () => {
 t('old saves with higher software levels are capped', () => {
   const s = TT.fresh(); s.software.pricing = 18; assert.equal(TT.load(TT.save(s)).software.pricing, 15);
 });
+t('mechanic grades: journeymen and masters do more work', () => {
+  const s = TT.fresh(); s.cash = 1e12; for (let i = 0; i < 9; i++) TT.act.hireMechanic(s);
+  assert.equal(TT.mechPower(s), 9); const brk = TT.mults(s).brk;
+  assert.equal(TT.act.trainMech(s, 'master'), 'Nobody to train: hire or train a journeyman first.');
+  assert.equal(TT.act.trainMech(s, 'jour'), ''); assert(Math.abs(TT.mechPower(s) - 9.6) < 1e-9); assert(TT.mults(s).brk < brk);
+  assert.equal(TT.act.trainMech(s, 'master'), ''); assert.equal(s.mjour, 0); assert.equal(s.mmaster, 1); assert(Math.abs(TT.mechPower(s) - 10.5) < 1e-9);
+  const t = TT.fresh(); t.cash = 1e9; TT.act.hireMechanic(t); assert.match(TT.act.trainMech(t, 'jour'), /3 mechanics/);
+});
+t('bulk buying stops at the yard and the cash', () => {
+  const s = TT.fresh(); s.cash = 1e9; s.yards = 1;
+  const b = TT.bulkPrice(s, 'truck:rear', 10); assert.equal(b.count, 10);
+  assert.equal(TT.act.buyTrucks(s, 'rear|max'), ''); assert.equal(TT.truckCount(s), TT.slots(s));
+  assert.equal(TT.act.hireDrivers(s, 'need'), ''); assert.equal(s.drivers, TT.needDrivers(s));
+  assert.equal(TT.bulkPrice(s, 'driver', 'need').count, 0);
+  const p = TT.fresh(); p.cash = 100; assert.equal(TT.act.buyTrucks(p, 'pickup|10'), ''); assert.equal(p.trucks.pickup, 2);
+});
+t('the front loader pays back about as fast as the other trucks late in a run', () => {
+  const s = TT.fresh(); s.trucks.front = 70; s.trucks.side = 40;
+  const pay = k => TT.price.truck(s, k) / (TT.TRUCKS[k].cap * TT.SERVICES[TT.TRUCKS[k].svc].rate);
+  assert(pay('front') < 3 * pay('side'));
+});
 console.log(n + ' checks passed');
