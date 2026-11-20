@@ -13,8 +13,8 @@ const TRUCKS = {
   pickup: { name: 'Pickup with trailer', svc: 'res', cap: 40, cost: 60, mult: 1.3, fuel: 0.05, about: 'Where everyone starts. Cans in the bed, bags on the trailer.' },
   rear:   { name: 'Rear loader', svc: 'res', cap: 400, cost: 900, mult: 1.13, fuel: 0.4, about: 'Two on the back, one driving. The workhorse of residential.' },
   side:   { name: 'Automated side loader', svc: 'res', cap: 1100, cost: 60000, mult: 1.1, fuel: 0.7, unlock: 'arms', about: 'One driver, an arm and a joystick. Carts must be at the curb.' },
-  front:  { name: 'Front loader', svc: 'com', cap: 60, cost: 4000, mult: 1.13, fuel: 0.6, unlock: 'commercial', about: 'Forks over the cab for restaurant and store dumpsters.' },
-  roll:   { name: 'Roll-off truck', svc: 'ro', cap: 8, cost: 15000, mult: 1.13, fuel: 0.7, unlock: 'rolloff', about: 'Drops and pulls 30-yard boxes at construction sites.' }
+  front:  { name: 'Front loader', svc: 'com', cap: 75, cost: 4000, mult: 1.1, fuel: 0.6, unlock: 'commercial', about: 'Forks over the cab for restaurant and store dumpsters.' },
+  roll:   { name: 'Roll-off truck', svc: 'ro', cap: 8, cost: 15000, mult: 1.11, fuel: 0.7, unlock: 'rolloff', about: 'Drops and pulls 30-yard boxes at construction sites.' }
 };
 const TRUCK_ORDER = ['pickup', 'rear', 'side', 'front', 'roll'];
 
@@ -48,7 +48,7 @@ const BAN = { rep: 15, secs: 120, lockSecs: 1800, lose: 0.5, rebrandRep: 10 }; /
 /* the regions you are not looking at: 15% speed, +17% per regional manager level (full speed at level 5) */
 const MANAGER = { base: 0.15, step: 0.17, max: 5, cost: 50000, share: 0.05, mult: 5 };   // first level: 5% of what the region needs to open (at least $50K), then 5x a level; 15% speed up to 100% at level 5
 /* what each region keeps for itself; everything else (name, software, trophies, Legacy, this run's earnings) is shared */
-const REGION_KEYS = ['cash', 'towns', 'cust', 'paused', 'trucks', 'drivers', 'pros', 'vets', 'supers', 'mechanics', 'yards', 'yardLvl', 'marketing', 'unlocks', 'down', 'price', 'priceDir', 'offer', 'nextOffer', 'rep', 'banClock', 'manager'];
+const REGION_KEYS = ['cash', 'towns', 'cust', 'paused', 'trucks', 'drivers', 'pros', 'vets', 'supers', 'mechanics', 'mjour', 'mmaster', 'yards', 'yardLvl', 'marketing', 'unlocks', 'down', 'price', 'priceDir', 'offer', 'nextOffer', 'rep', 'banClock', 'manager'];
 const lastRegion = () => REGIONS.length - 1;
 const region = s => REGIONS[s.region || 0];
 
@@ -118,6 +118,15 @@ const GRADES = {
 };
 /* Route supervisors (Nov 11): open at 15 drivers. Each one looks after 15 drivers; the drivers they cover get 10% more
    stops out of their trucks and break down a quarter less. */
+/* Mechanic grades (Nov 20): like drivers, a mechanic is trained up one grade at a time.
+   A journeyman does the work of 1.6 mechanics, a master the work of 2.5. */
+const MGRADES = {
+  apprentice: { name: 'Apprentice', power: 1, wage: 0.9 },
+  jour:   { name: 'Journeyman', power: 1.6, wage: 3, cost: 40000, mult: 1.25, from: 'apprentice', needs: 3, about: 'Does the work of 1.6 mechanics.' },
+  master: { name: 'Master', power: 2.5, wage: 9, cost: 2.5e6, mult: 1.25, from: 'jour', needs: 8, about: 'Does the work of 2.5 mechanics.' }
+};
+function mechCount(s, g) { const j = s.mjour || 0, m = s.mmaster || 0; return g === 'master' ? m : g === 'jour' ? j : s.mechanics - j - m; }
+function mechPower(s) { return mechCount(s, 'apprentice') + (s.mjour || 0) * MGRADES.jour.power + (s.mmaster || 0) * MGRADES.master.power; }
 const SUPER = { needs: 15, covers: 15, boost: 0.1, brk: 0.25, wage: 4, cost: 20000, mult: 1.45 };
 /* Yard levels (Nov 11): every yard is upgraded together. Bigger yards park more trucks, and each level adds a perk. */
 const YARD_TIERS = [
@@ -136,7 +145,7 @@ function fresh(legacy) {
     v: 1, cash: 0, earned: 0, t: 0, day: 1, rep: 60,
     towns: 1, cust: { res: 0, com: 0, ro: 0 }, paused: { res: false, com: false, ro: false },
     trucks: { pickup: 1, rear: 0, side: 0, front: 0, roll: 0 },
-    drivers: 0, pros: 0, vets: 0, supers: 0, mechanics: 0, yards: 0, yardLvl: 0, marketing: 0, manager: 0,
+    drivers: 0, pros: 0, vets: 0, supers: 0, mechanics: 0, mjour: 0, mmaster: 0, yards: 0, yardLvl: 0, marketing: 0, manager: 0,
     software: {}, unlocks: {},
     down: [],                 // [{ type, left, total, where }]
     price: 1, priceDir: 0,    // recycling price index
@@ -178,7 +187,7 @@ function mults(s) {
     cap: (1 + 0.12 * lvl(sw, 'planner')) * (1 + SUPER.boost * superCover(s)),
     rev: (1 + 0.13 * lvl(sw, 'pricing')) * (1 + 0.02 * achCount(s)) * (1 + 0.25 * lvl(L, 'pay')) * (1 + 0.1 * s.legacy.stars) * (s.boost > 0 ? 2 : 1) * region(s).rate,
     growth: (1 + 0.25 * lvl(sw, 'portal')) * (1 + 0.3 * lvl(L, 'grow')) * (1 + 0.35 * s.marketing),
-    brk: Math.pow(0.9, lvl(sw, 'reports')) / (1 + 0.25 * s.mechanics) * (1 - SUPER.brk * superCover(s)),
+    brk: Math.pow(0.9, lvl(sw, 'reports')) / (1 + 0.25 * mechPower(s)) * (1 - SUPER.brk * superCover(s)),
     repair: Math.pow(0.9, lvl(sw, 'dispatch')) * yardPerk(s, 'repair'),
     wage: Math.pow(0.94, lvl(sw, 'payroll')),
     fuel: (s.unlocks.cng ? 0.55 : 1) * yardPerk(s, 'fuel'),
@@ -216,7 +225,7 @@ function capacity(s, w) {
 }
 function wagesPerSec(s) {
   const pros = s.pros || 0, vets = s.vets || 0;
-  return ((s.drivers - pros - vets) * GRADES.rookie.wage + pros * GRADES.pro.wage + vets * GRADES.vet.wage + (s.supers || 0) * SUPER.wage + s.mechanics * BASE.mechWage) * mults(s).wage;
+  return ((s.drivers - pros - vets) * GRADES.rookie.wage + pros * GRADES.pro.wage + vets * GRADES.vet.wage + (s.supers || 0) * SUPER.wage + mechCount(s, 'apprentice') * MGRADES.apprentice.wage + (s.mjour || 0) * MGRADES.jour.wage + (s.mmaster || 0) * MGRADES.master.wage) * mults(s).wage;
 }
 
 /* Money per second, split into its parts, for the current state. */
@@ -252,6 +261,7 @@ const price = {
   driver: s => Math.ceil(costAt(BASE.driverCost, BASE.driverMult, s.drivers) * mults(s).wage),
   train: (s, g) => Math.ceil(costAt(GRADES[g].cost, GRADES[g].mult, g === 'pro' ? (s.pros || 0) + (s.vets || 0) : (s.vets || 0)) * mults(s).wage),
   mechanic: s => costAt(BASE.mechCost, BASE.mechMult, s.mechanics),
+  trainMech: (s, g) => Math.ceil(costAt(MGRADES[g].cost, MGRADES[g].mult, g === 'jour' ? (s.mjour || 0) + (s.mmaster || 0) : (s.mmaster || 0)) * mults(s).wage),
   supervisor: s => Math.ceil(costAt(SUPER.cost, SUPER.mult, s.supers || 0) * mults(s).wage),
   yardTier: s => { const t = YARD_TIERS[(s.yardLvl || 0) + 1]; return t ? Math.ceil(t.cost * Math.max(1, s.yards) * region(s).scale) : Infinity; },
   manager: s => Math.ceil(costAt(Math.max(MANAGER.cost, region(s).need * MANAGER.share), MANAGER.mult, s.manager || 0)),
@@ -264,6 +274,22 @@ const price = {
   legacy: (s, k) => costAt(LEGACY[k].cost, LEGACY[k].mult, lvl(s.legacy.perks, k)),
   rush: (s, d) => Math.ceil(50 + d.left * (TRUCKS[d.type].cost / 400))
 };
+
+/* What buying n more costs, and how many of them would fit. kind is 'truck:<type>' or 'driver'; n is a count or 'max'. */
+function bulkPrice(s, kind, n) {
+  const truck = kind.indexOf('truck:') === 0, k = kind.slice(6), T = TRUCKS[k];
+  const room = truck ? Math.max(0, slots(s) - truckCount(s)) : 1e4;
+  const start = truck ? (k === 'pickup' ? s.trucks.pickup - 1 : s.trucks[k]) : s.drivers, wm = truck ? 1 : mults(s).wage;
+  const base = truck ? T.cost : BASE.driverCost, mult = truck ? T.mult : BASE.driverMult;
+  const want = n === 'max' ? room : n === 'need' ? Math.max(0, needDrivers(s) - s.drivers) : Math.min(+n || 1, room);
+  let count = 0, cost = 0;
+  while (count < want) {
+    const c = Math.ceil(costAt(base, mult, start + count) * wm);
+    if (n === 'max' && cost + c > s.cash) break;
+    cost += c; count++; if (count > 1e4) break;
+  }
+  return { count, cost, next: Math.ceil(costAt(base, mult, start) * wm) };
+}
 
 /* ---------- actions (each returns '' on success or the reason it can't) ---------- */
 function spend(s, n) { if (s.cash < n) return 'Not enough cash yet.'; s.cash -= n; return ''; }
@@ -352,6 +378,25 @@ const act = {
     if (s.banned[M.id]) { delete s.banned[M.id]; s.metroRep = Math.max(5, (s.metroRep || M.startRep) - BAN.rebrandRep); note(s, 'Rebranded as ' + name + '. ' + M.name + ' will give you another try, starting at reputation ' + s.metroRep + '.', 'good'); }
     return '';
   },
+  trainMech(s, g) {
+    const G = MGRADES[g]; if (!G || !G.from) return 'No such grade.';
+    if (s.mechanics < G.needs) return 'Needs ' + G.needs + ' mechanics in the shop first.';
+    if (mechCount(s, G.from) < 1) return 'Nobody to train: hire or train ' + (G.from === 'apprentice' ? 'an apprentice' : 'a journeyman') + ' first.';
+    const e = spend(s, price.trainMech(s, g)); if (e) return e;
+    if (g === 'jour') s.mjour = (s.mjour || 0) + 1; else { s.mjour--; s.mmaster = (s.mmaster || 0) + 1; }
+    note(s, 'Trained a ' + G.name.toLowerCase() + ' mechanic.'); return '';
+  },
+  /* Bulk buying: x is 'truck|n' where n is a count or 'max'. Buys as many as the count, the cash and the yard allow. */
+  buyTrucks(s, x) {
+    const [k, n] = String(x).split('|'), want = n === 'max' ? 1e4 : +n || 1; let got = 0, err = '';
+    while (got < want) { err = act.buyTruck(s, k); if (err) break; got++; }
+    return got ? '' : err;
+  },
+  hireDrivers(s, x) {
+    const want = x === 'max' ? 1e4 : x === 'need' ? Math.max(0, needDrivers(s) - s.drivers) : +x || 1; let got = 0, err = '';
+    while (got < want) { err = act.hireDriver(s); if (err) break; got++; }
+    return got || !want ? '' : err;
+  },
   hireSupervisor(s) {
     if (s.drivers < SUPER.needs) return 'Supervisors start at ' + SUPER.needs + ' drivers.';
     const e = spend(s, price.supervisor(s)); if (e) return e; s.supers = (s.supers || 0) + 1; note(s, 'Hired route supervisor number ' + s.supers + '.'); return '';
@@ -412,7 +457,7 @@ function tick(s, dt, quiet) {
     const w = working(s), cr = crew(s, w);
     TRUCK_ORDER.forEach(k => {
       for (let i = 0; i < w[k]; i++) if (rand(s) < BASE.breakdown * m.brk * (i < cr[k].vet ? 0.5 : 1) * dt) {
-        const total = BASE.repair * m.repair / (1 + 0.5 * s.mechanics);
+        const total = BASE.repair * m.repair / (1 + 0.5 * mechPower(s));
         s.nid = (s.nid || 0) + 1;
         s.down.push({ id: 'd' + s.nid, type: k, left: total, total, where: STREETS[Math.floor(rand(s) * STREETS.length)] });
         note(s, 'Roadcall: ' + TRUCKS[k].name.toLowerCase() + ' down on ' + s.down[s.down.length - 1].where + '.', 'bad');
@@ -433,7 +478,7 @@ function tick(s, dt, quiet) {
   });
   // reputation drifts toward how well you serve
   const ratio = e.totalCust > 0 ? e.totalMissed / e.totalCust : 0;
-  const target = ratio > 0 ? Math.max(5, 75 - 160 * RG.down * ratio) : 75 + Math.min(25, s.mechanics * 2 + lvl(s.software, 'portal') * 2 + s.marketing);
+  const target = ratio > 0 ? Math.max(5, 75 - 160 * RG.down * ratio) : 75 + Math.min(25, mechPower(s) * 2 + lvl(s.software, 'portal') * 2 + s.marketing);
   s.rep += (target - s.rep) * Math.min(1, 0.02 * (target > s.rep ? RG.up : RG.down) * dt);
   // in the tougher regions, a reputation in the gutter for too long gets you run out (only while you are playing)
   if (RG.ban && !quiet) {
@@ -547,6 +592,8 @@ tiers('town', (v, i) => ['Next town over', 'Three towns', 'County-wide', 'City c
 tiers('net', (v, i) => ['In the black', 'Hundred a second', 'Thousand a second', 'Money printer', 'Firehose'][i], v => 'Make ' + fmtMoney(v) + ' a second, after costs.', [10, 100, 1000, 1e5, 1e7], s => s.stats.bestNet, 'chart');
 tiers('tap', (v, i) => ['Still hops on the back', 'Callused hands', 'Never left the truck'][i], v => 'Ride along ' + fmt(v) + ' times.', [100, 1000, 10000], s => s.stats.taps, 'hand');
 tiers('road', (v, i) => ['First roadcall', 'Shop regular', 'Seen it all'][i], v => 'Get ' + v + ' trucks back on the road.', [1, 25, 250], s => s.stats.roadcalls, 'wrench');
+tiers('mjour', (v, i) => ['Signed off', 'Full shop', 'Master class'][i], v => 'Have ' + v + ' journeyman or master mechanics.', [1, 10, 30], s => (s.mjour || 0) + (s.mmaster || 0), 'wrench');
+tiers('mmaster', (v, i) => ['Master mechanic', 'Master shop', 'Legendary shop'][i], v => 'Have ' + v + ' master mechanics.', [1, 10, 25], s => s.mmaster || 0, 'wrench');
 tiers('mech', (v, i) => ['Grease monkey', 'Real shop', 'Fleet maintenance'][i], v => 'Employ ' + v + ' mechanics.', [1, 5, 15], s => s.mechanics, 'wrench');
 tiers('deal', (v, i) => ['First contract', 'Deal maker', 'Closer'][i], v => 'Sign ' + v + ' contracts.', [1, 10, 50], s => s.stats.contracts, 'pen');
 tiers('yard', (v, i) => ['Off the driveway', 'Three yards', 'Yards everywhere'][i], v => 'Open ' + v + ' yards.', [1, 3, 10], s => s.yards, 'yard');
@@ -602,7 +649,7 @@ const exportCode = s => (typeof btoa === 'function' ? btoa(unescape(encodeURICom
 const importCode = c => load(typeof atob === 'function' ? decodeURIComponent(escape(atob(c.trim()))) : Buffer.from(c.trim(), 'base64').toString());
 
 const VERSION = '1.1.0', PRIVACY_URL = 'https://mhelton1.github.io/Trash-Tycoon/privacy-policy.html';
-const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, town, REGIONS, BAN, region, MANAGER, SUPER, YARD_TIERS, yardTier, superCover, awaySpeed, lockLeft, isDefaultName, REGION_KEYS, SOFTWARE, UNLOCKS, LEGACY, BASE, GRADES, TAU, ACH, STREETS, crew, gradeCount, wagesPerSec,
+const api = { VERSION, PRIVACY_URL, SERVICES, TRUCKS, TRUCK_ORDER, TOWNS, townDef, town, REGIONS, BAN, region, MANAGER, SUPER, MGRADES, mechCount, mechPower, bulkPrice, YARD_TIERS, yardTier, superCover, awaySpeed, lockLeft, isDefaultName, REGION_KEYS, SOFTWARE, UNLOCKS, LEGACY, BASE, GRADES, TAU, ACH, STREETS, crew, gradeCount, wagesPerSec,
   fresh, tick, catchUp, economy, working, capacity, market, slots, truckCount, needDrivers, mults, tapValue, price, act, starsFor,
   checkAch, nextGoals, makeOffer, fmt, fmtMoney, save, load, exportCode, importCode, lvl };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TT = api;

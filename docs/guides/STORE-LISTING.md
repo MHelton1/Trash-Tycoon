@@ -46,7 +46,7 @@ GROW YOUR WAY
 Win the franchise in new towns, start a recycling program and watch material prices move every day, build a sorting plant, open a transfer station and finally your own landfill, where other haulers pay you to tip. Run ads, sign contracts with HOAs, strip malls and builders, and upgrade your office software one module at a time.
 
 KEEP YOUR CUSTOMERS HAPPY
-Sign up homes faster than your trucks can serve them and pickups get missed. Your reputation drops, sign-ups slow and customers leave. Breakdowns happen too: hire mechanics, or pay to rush a roadcall and get the truck back on its route.
+Sign up homes faster than your trucks can serve them and pickups get missed. Your reputation drops, sign-ups slow and customers leave. Breakdowns happen too: hire and train mechanics, or pay to rush a roadcall and get the truck back on its route.
 
 ALWAYS SOMETHING TO EARN
 83 trophies to collect, from your first route to a million cans at the curb. Every trophy adds to your revenue for good, and the next three goals are always on screen.

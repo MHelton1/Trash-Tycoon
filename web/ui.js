@@ -68,6 +68,19 @@ function buyBtn(label, cost, a, x, why) {
   })}></button>`;
 }
 
+/* Bulk buttons for trucks and drivers follow the Fleet tab's x1 / x10 / Max switch.
+   For drivers, Max means "fill every parked truck". */
+let buyMode = '1'; try { buyMode = localStorage.getItem(KEY + '-buy') || '1'; } catch (e) { /* private mode */ }
+const bulkN = kind => buyMode === 'max' ? (kind === 'driver' ? 'need' : 'max') : buyMode;
+function bulkBtn(label, kind, a, x, why) {
+  return `<button class="btn" data-a="${a}"${x !== undefined ? ` data-x="${x}"` : ''} ${B(() => {
+    const w = why ? why() : ''; if (w) return { h: esc(w), dis: true, cls: 'btn' };
+    const b = T.bulkPrice(S, kind, bulkN(kind)), many = b.count > 1 || buyMode !== '1';
+    if (!b.count) return { h: esc(label) + `<small>${kind === 'driver' && buyMode === 'max' ? 'all trucks have one' : money(b.next)}</small>`, dis: kind === 'driver' && buyMode === 'max' || S.cash < b.next, cls: 'btn' };
+    return { h: esc(label) + (many ? ' ×' + b.count : '') + `<small>${money(b.cost)}</small>`, dis: S.cash < b.cost, cls: 'btn' };
+  })}></button>`;
+}
+
 /* ---------- header and tabs ---------- */
 function header() {
   $('#top').innerHTML = `<div class="row"><div class="co" ${B(() => S.name || 'Your hauling company')}></div><div class="day" ${B(() => 'Day ' + Math.floor(S.day))}></div></div>
@@ -188,15 +201,16 @@ const VIEWS = {
     const locked = T.TRUCK_ORDER.filter(k => visible.indexOf(k) < 0);
     return `<div class="grid2"><div class="card stat"><div class="v num" ${B(() => T.truckCount(S) + ' / ' + T.slots(S))}></div><div class="l">trucks in your yards</div></div>
       <div class="card stat"><div class="v num" ${B(() => (S.drivers + 1) + ' / ' + T.truckCount(S))}></div><div class="l">drivers (you drive one)</div></div></div>
-      <h2>Trucks</h2>` + visible.map(k => { const D = T.TRUCKS[k]; return `<div class="card"><div class="item"><div class="ic">${ic('truck')}</div><div class="grow"><h3>${esc(D.name)} <span class="pill num" ${B(() => '× ' + S.trucks[k])}></span></h3>
+      <div class="split" style="margin:14px 2px 6px"><h2 style="margin:0">Trucks</h2><span class="seg">${[['1', '×1'], ['10', '×10'], ['max', 'Max']].map(([m, l]) => `<button data-a="buyMode" data-x="${m}" ${B(() => ({ press: buyMode === m }))}>${l}</button>`).join('')}</span></div>` + visible.map(k => { const D = T.TRUCKS[k]; return `<div class="card"><div class="item"><div class="ic">${ic('truck')}</div><div class="grow"><h3>${esc(D.name)} <span class="pill num" ${B(() => '× ' + S.trucks[k])}></span></h3>
         <div class="about">${esc(D.about)}</div><div class="meta num" ${B(() => { const w = T.working(S)[k], m = T.mults(S); return { h: `Each reaches ${num(D.cap * m.cap)} ${T.SERVICES[D.svc].unit}. ` + (S.trucks[k] > w ? `<span class="pill bad">${S.trucks[k] - w} not running</span>` : (S.trucks[k] ? `${w} running` : '')) }; })}></div></div>
-        ${buyBtn('Buy', () => T.price.truck(S, k), 'buyTruck', k, () => T.truckCount(S) >= T.slots(S) ? 'Yard full' : '')}</div></div>`; }).join('') +
+        ${bulkBtn('Buy', 'truck:' + k, 'bulkTruck', k, () => T.truckCount(S) >= T.slots(S) ? 'Yard full' : '')}</div></div>`; }).join('') +
       (locked.length ? `<div class="muted small" style="margin:-2px 2px 10px">More trucks open with: ${locked.map(k => esc(T.UNLOCKS[T.TRUCKS[k].unlock].name)).join(', ')} (Office tab).</div>` : '') +
       `<h2>People and places</h2>
-      <div class="card"><div class="item"><div class="ic">${ic('people')}</div><div class="grow"><h3>Drivers <span class="pill num" ${B(() => '× ' + S.drivers)}></span></h3><div class="about" ${B(() => 'Rookies cost ' + money(T.GRADES.rookie.wage * T.mults(S).wage, 2) + '/s in wages. ' + (T.needDrivers(S) > S.drivers ? (T.needDrivers(S) - S.drivers) + ' truck(s) need a driver.' : T.needDrivers(S) < S.drivers ? 'You have ' + (S.drivers - T.needDrivers(S)) + ' spare.' : 'Every truck has a driver.'))}></div></div>${buyBtn('Hire', () => T.price.driver(S), 'hireDriver')}</div></div>
+      <div class="card"><div class="item"><div class="ic">${ic('people')}</div><div class="grow"><h3>Drivers <span class="pill num" ${B(() => '× ' + S.drivers)}></span></h3><div class="about" ${B(() => 'Rookies cost ' + money(T.GRADES.rookie.wage * T.mults(S).wage, 2) + '/s in wages. ' + (T.needDrivers(S) > S.drivers ? (T.needDrivers(S) - S.drivers) + ' truck(s) need a driver.' : T.needDrivers(S) < S.drivers ? 'You have ' + (S.drivers - T.needDrivers(S)) + ' spare.' : 'Every truck has a driver.'))}></div></div>${bulkBtn('Hire', 'driver', 'bulkDriver')}</div></div>
       ` + ['pro', 'vet'].map(g => { const G = T.GRADES[g]; return `<div class="card"><div class="item"><div class="ic">${ic(g === 'vet' ? 'star' : 'people')}</div><div class="grow"><h3>${G.name} drivers <span class="pill num" ${B(() => '× ' + T.gradeCount(S, g))}></span></h3><div class="about" ${B(() => G.about + ' Train one ' + T.GRADES[G.from].name.toLowerCase() + ' at a time. ' + money(G.wage * T.mults(S).wage, 2) + '/s in wages.')}></div></div>${buyBtn('Train', () => T.price.train(S, g), 'train', g, () => S.drivers < G.needs ? 'At ' + G.needs + ' drivers' : T.gradeCount(S, G.from) < 1 ? 'No ' + T.GRADES[G.from].name.toLowerCase() + 's' : '')}</div></div>`; }).join('') + `
       <div class="card"><div class="item"><div class="ic">${ic('people')}</div><div class="grow"><h3>Route supervisors <span class="pill num" ${B(() => '× ' + (S.supers || 0))}></span></h3><div class="about" ${B(() => 'Each looks after ' + T.SUPER.covers + ' drivers: +' + Math.round(T.SUPER.boost * 100) + '% stops and ' + Math.round(T.SUPER.brk * 100) + '% fewer breakdowns for the drivers they cover. Now covering ' + Math.round(T.superCover(S) * 100) + '%. ' + money(T.SUPER.wage * T.mults(S).wage, 2) + '/s each.')}></div></div>${buyBtn('Hire', () => T.price.supervisor(S), 'hireSupervisor', undefined, () => S.drivers < T.SUPER.needs ? 'At ' + T.SUPER.needs + ' drivers' : '')}</div></div>
-      <div class="card"><div class="item"><div class="ic">${ic('wrench')}</div><div class="grow"><h3>Mechanics <span class="pill num" ${B(() => '× ' + S.mechanics)}></span></h3><div class="about">Fewer breakdowns and much faster repairs. ${money(T.BASE.mechWage, 2)}/s each.</div></div>${buyBtn('Hire', () => T.price.mechanic(S), 'hireMechanic')}</div></div>
+      <div class="card"><div class="item"><div class="ic">${ic('wrench')}</div><div class="grow"><h3>Mechanics <span class="pill num" ${B(() => '× ' + S.mechanics)}></span></h3><div class="about" ${B(() => 'Fewer breakdowns and much faster repairs. Apprentices cost ' + money(T.MGRADES.apprentice.wage * T.mults(S).wage, 2) + '/s each. Your shop does the work of ' + num(T.mechPower(S), 1) + ' mechanics.')}></div></div>${buyBtn('Hire', () => T.price.mechanic(S), 'hireMechanic')}</div></div>
+      ` + ['jour', 'master'].map(g => { const G = T.MGRADES[g], from = T.MGRADES[G.from].name.toLowerCase(); return `<div class="card"><div class="item"><div class="ic">${ic(g === 'master' ? 'star' : 'wrench')}</div><div class="grow"><h3>${G.name} mechanics <span class="pill num" ${B(() => '× ' + T.mechCount(S, g))}></span></h3><div class="about" ${B(() => G.about + ' Train one ' + from + ' at a time. ' + money(G.wage * T.mults(S).wage, 2) + '/s in wages.')}></div></div>${buyBtn('Train', () => T.price.trainMech(S, g), 'trainMech', g, () => S.mechanics < G.needs ? 'At ' + G.needs + ' mechanics' : T.mechCount(S, G.from) < 1 ? 'No ' + from + 's' : '')}</div></div>`; }).join('') + `
       <div class="card"><div class="item"><div class="ic">${ic('yard')}</div><div class="grow"><h3>Yards <span class="pill num" ${B(() => '× ' + S.yards)}></span></h3><div class="about">${S.yards ? '' : 'Your driveway holds ' + T.BASE.drivewaySlots + ' trucks. '}Each yard parks ${T.yardTier(S).slots} more.</div></div>${buyBtn('Open', () => T.price.yard(S), 'buyYard')}</div></div>
       <div class="card"><div class="item"><div class="ic">${ic('yard')}</div><div class="grow"><h3>Yard level <span class="pill" ${B(() => esc(T.yardTier(S).name))}></span></h3><div class="about" ${B(() => { const nx = T.YARD_TIERS[(S.yardLvl || 0) + 1]; return nx ? 'Next: ' + nx.name + '. ' + nx.about + ' Every yard is upgraded at once.' : 'Your yards are as big as they get.'; })}></div></div>${buyBtn('Upgrade', () => T.YARD_TIERS[(S.yardLvl || 0) + 1] ? T.price.yardTier(S) : null, 'upgradeYards', undefined, () => S.yards < 1 ? 'Open a yard' : '')}</div></div>`;
   },
@@ -309,6 +323,9 @@ const special = {
   roundsman() { M.openRoundsman(); return ''; },
   adPrivacy() { M.privacyOptions().catch(() => {}); return ''; },
   rename() { askName(); },
+  buyMode(b) { buyMode = b.dataset.x; try { localStorage.setItem(KEY + '-buy', buyMode); } catch (e) { /* private mode */ } },
+  bulkTruck(b) { return T.act.buyTrucks(S, b.dataset.x + '|' + bulkN('truck')); },
+  bulkDriver() { return T.act.hireDrivers(S, bulkN('driver')); },
   theme(b) { S.theme = b.dataset.x; setTheme(S.theme); persist(); },
   exportSave() { const c = T.exportCode(S); modal(`<h2>Save code</h2><p class="small muted">Copy this and load it on another phone.</p><textarea readonly>${esc(c)}</textarea><div class="btns"><button class="btn" data-m="copy">Copy</button><button class="btn ghost" data-m="ok">Close</button></div>`, (k, m) => { if (k === 'copy') { const ta = m.querySelector('textarea'); ta.select(); try { navigator.clipboard.writeText(c); } catch (e) { document.execCommand('copy'); } note('Copied.'); } }); },
   importSave() { modal(`<h2>Load a save code</h2><p class="small muted">This replaces the game on this phone.</p><textarea></textarea><div class="btns"><button class="btn ghost" data-m="no">Cancel</button><button class="btn" data-m="load">Load</button></div>`, (k, m) => { if (k !== 'load') return; try { S = T.importCode(m.querySelector('textarea').value); setTheme(S.theme || 'auto'); persist(); show('route'); note('Save loaded.'); } catch (e) { note('That code did not work.'); return false; } }); },
